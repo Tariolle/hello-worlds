@@ -38,11 +38,15 @@ Parents we explicitly cite (NOT claim as ours):
 - [x] `eval.py` patient-disjoint probe + random floor
 - [x] `baseline_riemann.py` pyRiemann tangent + LR yardstick
 - [x] configs / pyproject / .gitignore / README
-- [ ] Push to GitHub; clone on Dalia; `uv pip install -e .`
-- [ ] CONFIRM TUAB_PREPROCESSED path on Dalia; set data.data_root
-- [ ] Smoke test: baseline_riemann (validates EDF pipeline, gives ~0.86)
-- [ ] Smoke test: main.py 1 epoch tiny epoch_size on 1 GPU (loss decreases, eff_rank > 1)
-- [ ] Verify tangent arm numerics (eigh/logm stability at d_cov=32); fallback = hypersphere tangent
+- [x] Push to GitHub (hello-worlds → origin/main) + code on Dalia `$WORK/hello-worlds`
+- [x] SSH access working (key fix: trailing newline + Windows OpenSSH — see CLUSTER.md)
+- [x] SLURM recipe found (signal-53 fix: `--account`+`--nodes`+`--ntasks`; GPU via `--gpus-per-node`)
+- [x] aarch64 venv built on compute node (torch 2.11+cu128) — `$WORK/venvs/hw_aarch64`
+- [x] TUAB path confirmed + already in train.yaml (no download needed)
+- [x] Smoke: forward+backward of all 6 cells on a B200, eigh-tangent on GPU OK (`smoke.py`)
+- [x] Verify tangent numerics (eigh/logm finite on GPU at d_cov=32) — covered by smoke
+- [ ] `git pull` workflow on cluster (HTTPS+PAT, SSH is proxy-blocked) — then re-clone $WORK copy
+- [ ] baseline_riemann on TUAB (validates real EDF/pyedflib pipeline + ~0.86 yardstick)
 - [ ] C1 SIGReg×ambient full run -> first probe number (THE qualification gate)
 - [ ] Fan out 2×2 {C1..C4} + C0 (VICReg ref) across 3 GPUs, 1 seed -> populate the table
 - [ ] 3-seed {1,1000,10000} the key comparison (C2 vs C4 + the interaction)
@@ -51,8 +55,8 @@ Parents we explicitly cite (NOT claim as ours):
 - [ ] Figures + 10-min deck + report
 
 ## 24h sequencing (deadlines: 17:30 code, 18:00 slides, 19:00 jury)
-- H0–1  install on Dalia, confirm SLURM partition/account + TUAB path
-- H1–4  baseline_riemann (data sanity + yardstick); smoke main.py; build probe vs random encoder
+- ~~H0–1  install on Dalia, confirm SLURM partition/account + TUAB path~~ ✅ done (+ SSH/venv/smoke)
+- H1–4  baseline_riemann (data sanity + yardstick); ~~smoke main.py~~ ✅; build probe vs random encoder
 - H4–8  Rung 0 trains without collapse -> first number  (GATE — must clear by ~H8)
 - H8–16 Rung 1 + Rung 2; 3 GPUs = 3 parallel arms; one change at a time
 - H16–21 lock model, robustness + label-fraction, figures, 3-seed error bars
