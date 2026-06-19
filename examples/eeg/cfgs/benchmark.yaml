@@ -1,0 +1,177 @@
+# EEG-JEPA benchmark registry.
+#
+# This file is intentionally data-only. It records what should appear in the
+# benchmark table and which rows may be produced locally. Running the benchmark
+# renderer with this config does not train a model.
+
+meta:
+  benchmark_name: eeg_jepa_tuab
+  output_dir: results/benchmark
+  primary_metric: balanced_acc
+  higher_is_better: true
+  generated_note: "Pending JEPA rows are expected until checkpoints exist."
+
+dataset:
+  name: TUAB
+  task: normal_vs_abnormal
+  local_protocol: "Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe."
+  local_split: "train/eval patients as stored under TUAB_PREPROCESSED"
+  local_reporting: "balanced accuracy and AUROC on all readable evaluation recordings"
+  caution: "Do not mix full-split balanced accuracy with subset accuracy without marking the protocol."
+
+local_methods:
+  - id: jepa_vicreg_ambient
+    display_name: "JEPA VICReg ambient"
+    family: "This repo"
+    status: pending_training
+    reg_type: vicreg
+    reg_space: ambient
+    checkpoint: checkpoints/eeg_ambient_vicreg/latest.pth.tar
+    seed: 1
+    comparable_to_local_jepa: true
+    notes: "Reference arm using eb_jepa's default VICReg-style anti-collapse loss."
+
+  - id: jepa_sigreg_ambient
+    display_name: "JEPA SIGReg ambient"
+    family: "This repo"
+    status: pending_training
+    reg_type: sigreg
+    reg_space: ambient
+    checkpoint: checkpoints/eeg_ambient_sigreg/latest.pth.tar
+    seed: 1
+    comparable_to_local_jepa: true
+    notes: "Laya-like local baseline: SIGReg in Euclidean pooled-representation space."
+
+  - id: jepa_sigreg_tangent
+    display_name: "JEPA SIGReg tangent"
+    family: "This repo"
+    status: pending_training
+    reg_type: sigreg
+    reg_space: tangent
+    checkpoint: checkpoints/eeg_tangent_sigreg/latest.pth.tar
+    seed: 1
+    comparable_to_local_jepa: true
+    notes: "Geometry-aware SIGReg on SPD log-Euclidean tangent features."
+
+  - id: jepa_peira_ambient
+    display_name: "JEPA PEIRA ambient"
+    family: "This repo"
+    status: pending_training
+    reg_type: peira
+    reg_space: ambient
+    checkpoint: checkpoints/eeg_ambient_peira/latest.pth.tar
+    seed: 1
+    comparable_to_local_jepa: true
+    notes: "Factorial control: PEIRA regularization without SPD tangent geometry."
+
+  - id: jepa_peira_tangent
+    display_name: "JEPA PEIRA tangent"
+    family: "This repo"
+    status: pending_training
+    reg_type: peira
+    reg_space: tangent
+    checkpoint: checkpoints/eeg_tangent_peira/latest.pth.tar
+    seed: 1
+    comparable_to_local_jepa: true
+    notes: "Hypothesis cell: distribution-free anti-collapse on SPD tangent features."
+
+  - id: riemann_tangent_logreg
+    display_name: "Riemannian covariance + logistic probe"
+    family: "Classical baseline"
+    status: runnable_local
+    comparable_to_local_jepa: true
+    command: "python -m examples.eeg.baseline_riemann --data_root <TUAB_PREPROCESSED>"
+    notes: "0-parameter complexity yardstick; run before GPU experiments to sanity-check EDF loading."
+
+  - id: random_encoder_floor
+    display_name: "Random EEGEncoder1D floor"
+    family: "Sanity floor"
+    status: runnable_local
+    comparable_to_local_jepa: true
+    command: "python -m examples.eeg.benchmark --run-random-floor --data-root <TUAB_PREPROCESSED>"
+    notes: "Same architecture as the JEPA encoder, untrained; confirms the probe is not leaking labels."
+
+published_references:
+  - id: laya_s_abnormal
+    display_name: "Laya-S"
+    family: "Published EEG foundation model"
+    status: published_reference
+    protocol: "EEG-Bench frozen linear probe, Abnormal task; not the full local TUAB split."
+    train_data: "About 3k hours unlabeled EEG for Laya-S pretraining."
+    frozen_probe: true
+    balanced_acc: 0.798
+    metric_source: "references/laya/SUMMARY.md"
+    comparable_to_local_jepa: false
+    notes: "Closest conceptual reference: LeJEPA/SIGReg EEG latent prediction."
+
+  - id: lumamba_tuab
+    display_name: "LuMamba"
+    family: "Published EEG foundation model"
+    status: published_reference
+    protocol: "TUAB abnormality detection, reported balanced accuracy; protocol differs from this repo until reproduced."
+    train_data: "About 21k hours unlabeled EEG from TUEG."
+    frozen_probe: null
+    balanced_acc: 0.8099
+    metric_source: "arXiv 2603.19100 abstract"
+    comparable_to_local_jepa: false
+    notes: "Efficient topology-invariant Mamba/LeJEPA-style reference; use as a target, not a local apples-to-apples row."
+
+  - id: eeg_vjepa_frozen_subset
+    display_name: "EEG-VJEPA frozen"
+    family: "Published JEPA EEG model"
+    status: published_reference
+    protocol: "TUAB subset, attention-pooling frozen probe; train 276 normal/270 abnormal, val 150 normal/126 abnormal."
+    frozen_probe: true
+    acc: 0.833
+    auroc: 0.877
+    f1: 0.824
+    metric_source: "references/eeg-vjepa/SUMMARY.md"
+    comparable_to_local_jepa: false
+    notes: "Strong JEPA TUAB reference, but uses a much smaller subset and reports accuracy."
+
+  - id: eeg_vjepa_finetuned_subset
+    display_name: "EEG-VJEPA fine-tuned"
+    family: "Published JEPA EEG model"
+    status: published_reference
+    protocol: "TUAB subset, full fine-tuning; train 276 normal/270 abnormal, val 150 normal/126 abnormal."
+    frozen_probe: false
+    acc: 0.858
+    auroc: 0.885
+    f1: 0.856
+    metric_source: "references/eeg-vjepa/SUMMARY.md"
+    comparable_to_local_jepa: false
+    notes: "Not directly comparable to a frozen probe from this repo."
+
+  - id: labram_finetuned_subset
+    display_name: "LaBraM fine-tuned"
+    family: "Published EEG foundation model"
+    status: published_reference
+    protocol: "Reported in EEG-VJEPA TUAB subset table."
+    frozen_probe: false
+    acc: 0.8258
+    auroc: 0.9204
+    metric_source: "references/eeg-vjepa/SUMMARY.md"
+    comparable_to_local_jepa: false
+    notes: "Hard AUROC target; protocol and adaptation differ."
+
+  - id: chrononet_supervised_subset
+    display_name: "ChronoNet supervised"
+    family: "Published supervised model"
+    status: published_reference
+    protocol: "Reported in EEG-VJEPA TUAB subset table."
+    frozen_probe: false
+    acc: 0.8657
+    metric_source: "references/eeg-vjepa/SUMMARY.md"
+    comparable_to_local_jepa: false
+    notes: "Supervised upper-reference for subset accuracy, not a foundation-model frozen probe."
+
+  - id: bioserenity_e1_tuab_eval
+    display_name: "BioSerenity-E1 fine-tuned"
+    family: "Published clinical foundation model"
+    status: published_reference
+    protocol: "Fine-tuned on private data, validated on TUAB eval dataset; TUAB train was not used."
+    frozen_probe: false
+    acc: 0.8225
+    metric_source: "arXiv 2505.21507 abstract"
+    comparable_to_local_jepa: false
+    notes: "Useful clinical deployment reference, but not a local TUAB-train/TUAB-eval comparison."

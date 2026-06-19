@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>eeg_jepa_tuab</title>
+<style>
+body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #172033; }
+h1 { font-size: 28px; margin-bottom: 4px; }
+.subtle { color: #5f6b7a; max-width: 960px; }
+table { border-collapse: collapse; width: 100%; margin-top: 24px; font-size: 14px; }
+th, td { border-bottom: 1px solid #d9dee7; padding: 10px 12px; text-align: left; vertical-align: top; }
+th { background: #eef2f6; color: #2d3748; position: sticky; top: 0; }
+td:nth-child(1), td:nth-child(5), td:nth-child(6), td:nth-child(7), td:nth-child(8) { text-align: right; font-variant-numeric: tabular-nums; }
+tr.local { background: #f7fbff; }
+tr.reference { background: #fffaf0; }
+tr.pending td { color: #687385; }
+.legend { display: flex; gap: 16px; margin-top: 16px; color: #4a5568; font-size: 13px; }
+.swatch { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border: 1px solid #c7ced9; }
+.local-s { background: #f7fbff; }
+.ref-s { background: #fffaf0; }
+</style>
+<body>
+<h1>eeg_jepa_tuab</h1>
+<p class="subtle">Primary metric: <b>balanced_acc</b>. Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe.</p>
+<p class="subtle"><b>Caution:</b> Do not mix full-split balanced accuracy with subset accuracy without marking the protocol.</p>
+<div class="legend"><span><span class="swatch local-s"></span>local comparable rows</span><span><span class="swatch ref-s"></span>published reference rows</span></div>
+<table>
+<thead><tr><th>Rank</th><th>Method</th><th>Status</th><th>Protocol</th><th>Acc</th><th>BalAcc</th><th>AUROC</th><th>F1</th><th>Comparable?</th><th>Source</th></tr></thead>
+<tbody>
+<tr class='reference'><td>1</td><td>LuMamba</td><td>published_reference</td><td>TUAB abnormality detection, reported balanced accuracy; protocol differs from this repo until reproduced.</td><td></td><td>0.8099</td><td></td><td></td><td>reference only</td><td>arXiv 2603.19100 abstract</td></tr><tr class='reference'><td>2</td><td>Laya-S</td><td>published_reference</td><td>EEG-Bench frozen linear probe, Abnormal task; not the full local TUAB split.</td><td></td><td>0.7980</td><td></td><td></td><td>reference only</td><td>references/laya/SUMMARY.md</td></tr><tr class='local pending'><td></td><td>JEPA VICReg ambient</td><td>pending_training</td><td>Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe.</td><td></td><td></td><td></td><td></td><td>yes</td><td>local</td></tr><tr class='local pending'><td></td><td>JEPA SIGReg ambient</td><td>pending_training</td><td>Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe.</td><td></td><td></td><td></td><td></td><td>yes</td><td>local</td></tr><tr class='local pending'><td></td><td>JEPA SIGReg tangent</td><td>pending_training</td><td>Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe.</td><td></td><td></td><td></td><td></td><td>yes</td><td>local</td></tr><tr class='local pending'><td></td><td>JEPA PEIRA ambient</td><td>pending_training</td><td>Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe.</td><td></td><td></td><td></td><td></td><td>yes</td><td>local</td></tr><tr class='local pending'><td></td><td>JEPA PEIRA tangent</td><td>pending_training</td><td>Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe.</td><td></td><td></td><td></td><td></td><td>yes</td><td>local</td></tr><tr class='local'><td></td><td>Riemannian covariance + logistic probe</td><td>runnable_local</td><td>Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe.</td><td></td><td></td><td></td><td></td><td>yes</td><td>local</td></tr><tr class='local'><td></td><td>Random EEGEncoder1D floor</td><td>runnable_local</td><td>Full TUAB_PREPROCESSED patient-disjoint train/eval split, recording-level frozen probe.</td><td></td><td></td><td></td><td></td><td>yes</td><td>local</td></tr><tr class='reference'><td></td><td>EEG-VJEPA frozen</td><td>published_reference</td><td>TUAB subset, attention-pooling frozen probe; train 276 normal/270 abnormal, val 150 normal/126 abnormal.</td><td>0.8330</td><td></td><td>0.8770</td><td>0.8240</td><td>reference only</td><td>references/eeg-vjepa/SUMMARY.md</td></tr><tr class='reference'><td></td><td>EEG-VJEPA fine-tuned</td><td>published_reference</td><td>TUAB subset, full fine-tuning; train 276 normal/270 abnormal, val 150 normal/126 abnormal.</td><td>0.8580</td><td></td><td>0.8850</td><td>0.8560</td><td>reference only</td><td>references/eeg-vjepa/SUMMARY.md</td></tr><tr class='reference'><td></td><td>LaBraM fine-tuned</td><td>published_reference</td><td>Reported in EEG-VJEPA TUAB subset table.</td><td>0.8258</td><td></td><td>0.9204</td><td></td><td>reference only</td><td>references/eeg-vjepa/SUMMARY.md</td></tr><tr class='reference'><td></td><td>ChronoNet supervised</td><td>published_reference</td><td>Reported in EEG-VJEPA TUAB subset table.</td><td>0.8657</td><td></td><td></td><td></td><td>reference only</td><td>references/eeg-vjepa/SUMMARY.md</td></tr><tr class='reference'><td></td><td>BioSerenity-E1 fine-tuned</td><td>published_reference</td><td>Fine-tuned on private data, validated on TUAB eval dataset; TUAB train was not used.</td><td>0.8225</td><td></td><td></td><td></td><td>reference only</td><td>arXiv 2505.21507 abstract</td></tr>
+</tbody>
+</table>
+</body>
+</html>
