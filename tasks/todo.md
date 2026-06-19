@@ -45,9 +45,10 @@ Parents we explicitly cite (NOT claim as ours):
 - [x] TUAB path confirmed + already in train.yaml (no download needed)
 - [x] Smoke: forward+backward of all 6 cells on a B200, eigh-tangent on GPU OK (`smoke.py`)
 - [x] Verify tangent numerics (eigh/logm finite on GPU at d_cov=32) — covered by smoke
-- [ ] `git pull` workflow on cluster (HTTPS+PAT, SSH is proxy-blocked) — then re-clone $WORK copy
-- [ ] baseline_riemann on TUAB (validates real EDF/pyedflib pipeline + ~0.86 yardstick)
-- [ ] C1 SIGReg×ambient full run -> first probe number (THE qualification gate)
+- [x] `git pull` workflow on cluster (HTTPS + fine-grained PAT; SSH is proxy-blocked)
+- [x] baseline_riemann on TUAB ✅ EDF pipeline OK + yardstick **BalAcc 0.761 / AUROC 0.810**
+      (quick 16-window mean; ~0.86 reachable with whole-recording covariance if we want a harder bar)
+- [ ] C1 SIGReg×ambient full run -> first probe number (THE qualification gate)  ← IN PROGRESS
 - [ ] Fan out 2×2 {C1..C4} + C0 (VICReg ref) across 3 GPUs, 1 seed -> populate the table
 - [ ] 3-seed {1,1000,10000} the key comparison (C2 vs C4 + the interaction)
 - [ ] Label-fraction curve (1/5/10/25/100%) — novel, ~free
