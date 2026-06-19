@@ -44,7 +44,9 @@ This writes:
 - `results/benchmark/eeg_benchmark.md`
 - `results/benchmark/eeg_benchmark.html`
 - `results/benchmark/eeg_benchmark_rows.json`
-- `results/benchmark/eeg_benchmark_balanced_acc.png`
+- one bar chart per metric that has data: `eeg_benchmark_acc.png`,
+  `eeg_benchmark_balanced_acc.png`, `eeg_benchmark_auroc.png`,
+  `eeg_benchmark_f1.png`
 
 It does not run JEPA pretraining.
 

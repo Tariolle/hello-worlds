@@ -16,6 +16,7 @@ import csv
 import json
 import math
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -213,7 +214,7 @@ def _rank_rows(rows: list[dict[str, Any]], primary_metric: str) -> list[dict[str
     sortable = []
     for idx, row in enumerate(rows):
         value = _metric_value(row, primary_metric)
-        sortable.append((value is None, -(value or -1.0), idx, row))
+        sortable.append((value is None, -value if value is not None else 0.0, idx, row))
     ranked = []
     rank = 1
     for missing, _neg_value, _idx, row in sorted(sortable):
@@ -348,7 +349,9 @@ tr.pending td {{ color: #687385; }}
 
 
 def _write_plot(rows: list[dict[str, Any]], path: Path, metric: str) -> None:
-    os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-eeg-benchmark")
+    os.environ.setdefault(
+        "MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "matplotlib-eeg-benchmark")
+    )
     import matplotlib.pyplot as plt
 
     plotted = [row for row in rows if _metric_value(row, metric) is not None]
