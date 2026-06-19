@@ -1,0 +1,22 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# experiment artifacts
+checkpoints/
+runs/
+wandb/
+outputs/
+*.pth
+*.pth.tar
+
+# data — never commit EEG recordings
+data/
+*.edf
+*.npy
+*.memmap
+
+# vendored reference papers (keep the SUMMARY.md notes, not the PDFs)
+references/**/*.pdf
