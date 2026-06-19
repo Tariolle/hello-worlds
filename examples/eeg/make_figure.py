@@ -2,10 +2,12 @@
 
 Panel (a) label efficiency: frozen JEPA probe vs random-encoder probe, BalAcc vs %labels
   (reads results/.../label_eff.json, written by label_efficiency.py).
-Panel (b) pretraining-data efficiency: BalAcc (full labels) vs % of TRAIN recordings used
-  for SSL (reads results/.../pretrain_data.json, written by the collection step).
+Panel (b) pretraining-data efficiency (OPT-IN, --with-pretrain): BalAcc (full labels)
+  vs % of TRAIN recordings used for SSL. Single-seed and noise-dominated below 50%
+  (frac-to-frac sigma ~0.012 > the trend), so it is DROPPED by default; the data
+  lives in pretrain_data.json for whoever wants to re-run it multi-seed.
 
-  python -u -m examples.eeg.make_figure --out results/label_eff
+  python -u -m examples.eeg.make_figure --out results/label_eff   # clean single panel
 """
 import json
 import os
@@ -19,10 +21,14 @@ FT_BAND = (0.814, 0.829)
 
 a = sys.argv
 out = a[a.index("--out") + 1] if "--out" in a else "results/label_eff"
+# Panel (b) pretraining-data efficiency is single-seed and noise-dominated below
+# 50% (frac-to-frac sigma ~0.012 > the trend) -> DROPPED by default. The data is
+# kept in pretrain_data.json; pass --with-pretrain to render the 2-panel anyway.
+with_pretrain = "--with-pretrain" in a
 le = json.load(open(f"{out}/label_eff.json"))
 rie = le.get("riemann", 0.761)
 pdj = f"{out}/pretrain_data.json"
-pd = json.load(open(pdj)) if os.path.exists(pdj) else None
+pd = (json.load(open(pdj)) if os.path.exists(pdj) else None) if with_pretrain else None
 
 n = 2 if pd else 1
 fig, axes = plt.subplots(1, n, figsize=(11 if pd else 6.4, 4.3), squeeze=False)
@@ -37,7 +43,8 @@ ax.errorbar(xs, [r["mean"] for r in le["random"]], yerr=[r["std"] for r in le["r
             marker="s", lw=2, ls="--", capsize=3, color="C3", label="random-encoder probe")
 ax.set_xscale("log"); ax.set_xlabel("% of TRAIN labels (probe fit)")
 ax.set_ylabel("Balanced accuracy (held-out patients)")
-ax.set_title("(a) Label efficiency"); ax.legend(fontsize=7, loc="lower right"); ax.grid(alpha=0.3)
+ax.set_title("(a) Label efficiency" if pd else "Label efficiency")
+ax.legend(fontsize=7, loc="lower right"); ax.grid(alpha=0.3)
 
 if pd:
     ax2 = axes[0][1]
@@ -52,5 +59,6 @@ if pd:
     ax2.legend(fontsize=7, loc="lower right"); ax2.grid(alpha=0.3)
 
 fig.suptitle("Value of self-supervision — frozen in-domain EEG-JEPA on TUAB")
-fig.tight_layout(); fig.savefig(f"{out}/value_of_ssl.png", dpi=140)
+fig.tight_layout()
+fig.savefig(f"{out}/value_of_ssl.png", dpi=140)
 print(f"saved {out}/value_of_ssl.png")
