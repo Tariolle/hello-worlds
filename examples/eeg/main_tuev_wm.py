@@ -67,6 +67,7 @@ def run(fname="examples/eeg/cfgs/train_tuev_wm.yaml", cfg=None, **overrides):
             opt.zero_grad(set_to_none=True)
             loss, logs = model.compute_loss((x_past, x_future))
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
             losses.append(loss.item())
 

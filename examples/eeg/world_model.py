@@ -7,16 +7,17 @@ Three parallel prediction heads, each in a different geometric space:
     Anti-collapse: SIGReg / BCS (Gaussian assumption in Euclidean space)
     WM loss: predictor_amb(z_past) ≈ z_future  (MSE in projected space)
 
-  Tangent (Log-Euclidean)
+  Tangent (Log-Euclidean, compressed)
     Embed: cov_features() → temporal_covariance → spd_logm → upper_tri_vec [B, d(d+1)/2]
     Anti-collapse: PEIRA (distribution-free, no Gaussian assumption on tangent vectors)
-    WM loss: predictor_tan(z_past) ≈ z_future  (MSE = Log-Euclidean metric)
+    WM loss: predictor_tan(z_past) ≈ z_future  (MSE on upper-tri log-SPD)
 
-  Riemannian (affine-invariant)
-    Embed: cov_features() → temporal_covariance → log-SPD flatten [B, d²]
+  Riemannian (Log-Euclidean, full matrix)
+    Embed: cov_features() → temporal_covariance → log-SPD full d×d flatten [B, d²]
     Anti-collapse: VICReg on projected log-SPD features
-    WM loss: predictor_riem(z_past) → decode to log-SPD → expm → SPD_pred
-             affine-invariant geodesic distance to SPD_future
+    WM loss: predictor decodes to full log-SPD, MSE vs target log-SPD
+             (Log-Euclidean metric — valid Riemannian metric on SPD, numerically stable)
+    Distinct from tangent head: uses full d×d matrix (includes cross-terms) not just upper-tri.
 
 Data: TUEVDataset mode="wm_ssl" returns (x_past, x_future) consecutive 1-second windows.
 """
@@ -26,8 +27,7 @@ import torch.nn.functional as F
 
 from eb_jepa.losses import VICRegLoss, BCS
 from examples.eeg.geometry import (
-    temporal_covariance, spd_logm, spd_expm, upper_tri_vec,
-    riemannian_sq_dist, collapse_metrics,
+    temporal_covariance, spd_logm, upper_tri_vec, collapse_metrics,
 )
 from examples.eeg.main import Projector
 from examples.eeg.peira import PEIRALoss
@@ -82,11 +82,12 @@ class EEGWorldModel(nn.Module):
         self.pred_tan = Predictor(p)
         self.reg_tan = PEIRALoss(dim=p, lam=s.get("lam", 0.1))
 
-        # ── Riemannian (affine-invariant) head ───────────────────────────────
+        # ── Riemannian (Log-Euclidean, full d×d) head ───────────────────────
+        # Uses full log-SPD matrix [B, d²] — richer than upper-tri tangent [B, d(d+1)/2].
+        # WM loss = MSE on log-SPD (= Log-Euclidean metric, numerically stable).
         self.proj_riem = Projector(d_spd, proj_spec)
         self.pred_riem = Predictor(p)
-        # Decode predicted latent → log-SPD space → SPD via expm
-        self.riem_decoder = nn.Linear(p, d_spd)
+        self.riem_decoder = nn.Linear(p, d_spd)   # latent → log-SPD [B, d²]
         self.reg_riem = VICRegLoss(
             std_coeff=s.get("std_coeff", 1.0), cov_coeff=s.get("cov_coeff", 1.0))
 
@@ -129,15 +130,16 @@ class EEGWorldModel(nn.Module):
         out_tan = self.reg_tan(z_past_tan, z_fut_tan)
         loss_ssl_tan = out_tan["loss"]
 
-        # ── Riemannian ───────────────────────────────────────────────────────
+        # ── Riemannian (Log-Euclidean) ────────────────────────────────────────
+        # Predict future log-SPD directly; MSE in log-space = Log-Euclidean metric.
         pred_z_riem = self.pred_riem(z_past_riem)              # [B, p]
         log_pred_flat = self.riem_decoder(pred_z_riem)         # [B, d²]
-        B, d = x_past.shape[0], self.d_cov
-        log_pred = log_pred_flat.reshape(B, d, d)
-        log_pred = 0.5 * (log_pred + log_pred.mT)              # symmetrize → valid log-SPD
-        spd_pred = spd_expm(log_pred)                          # [B, d, d] SPD
 
-        loss_wm_riem = riemannian_sq_dist(spd_pred, spd_fut.detach()).mean()
+        # Target: full log-SPD of future window (stop-grad)
+        B, d = x_past.shape[0], self.d_cov
+        log_fut_flat = spd_logm(spd_fut).reshape(B, d * d).detach()
+
+        loss_wm_riem = F.mse_loss(log_pred_flat, log_fut_flat)
         out_riem = self.reg_riem(z_past_riem, z_fut_riem)
         loss_ssl_riem = out_riem["loss"]
 
