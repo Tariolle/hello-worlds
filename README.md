@@ -32,6 +32,16 @@ python -m examples.eeg.main  --fname examples/eeg/cfgs/train.yaml
 python -m examples.eeg.eval  --ckpt ./checkpoints/eeg_ambient_sigreg/latest.pth.tar --floor
 ```
 
+## Benchmark (safe before training)
+The benchmark renderer compares local JEPA cells, local TUAB baselines, and
+published references such as Laya without launching pretraining:
+```bash
+python -m examples.eeg.benchmark
+```
+Artifacts are written under `results/benchmark/`. See
+`docs/eeg_benchmark_tutorial.md` for the human and agent workflow, including how
+to add trained checkpoints later with `--checkpoint METHOD_ID=PATH`.
+
 ## What we measure
 Frozen **linear-probe balanced accuracy + AUROC on the full 2717/276 split**,
 recording level — plus collapse diagnostics (effective rank, per-dim std,
