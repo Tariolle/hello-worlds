@@ -1,0 +1,44 @@
+# EEG-JEPA SSL pretraining on TUEV (6-class events).
+# Best cell from TUAB ladder: sigreg x ambient.
+
+meta:
+  seed: 1
+  ckpt_dir: ./checkpoints/eeg_tuev_sigreg
+
+data:
+  data_root: /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUEV_PREPROCESSED
+  split: train
+  n_channels: 19
+  sfreq: 200
+  window_sec: 4.0       # TUEV events are 1-4 s; 4s = 800 samples @ 200 Hz
+  epoch_size: 20000
+  n_windows: 1          # probe: one segment = one item
+  batch_size: 256
+  num_workers: 16
+  aug_noise_std: 0.1
+  aug_scale_jitter: 0.2
+  aug_chan_drop_p: 0.2
+  aug_time_mask_frac: 0.2
+
+model:
+  n_channels: 19
+  encoder:
+    widths: [64, 128, 128, 256]   # stride-2 x4: 800 -> 50 time steps
+    d_model: 256
+    d_cov: 32                     # 32 < 50 -> full-rank covariance
+    kernel: 7
+    stride: 2
+  ssl:
+    reg_type: sigreg
+    reg_space: ambient
+    proj: "512-512-256"
+    num_slices: 256
+    lmbd: 10.0
+    std_coeff: 1.0
+    cov_coeff: 1.0
+    lam: 0.1
+
+optim:
+  lr: 0.001
+  weight_decay: 0.000001
+  epochs: 30

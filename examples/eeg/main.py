@@ -131,18 +131,39 @@ def run(fname="examples/eeg/cfgs/train.yaml", cfg=None, folder=None, **overrides
 
     ckpt_dir = folder or cfg.meta.ckpt_dir
     os.makedirs(ckpt_dir, exist_ok=True)
+
+    import json, time
+    history = []
+    log_path = os.path.join(ckpt_dir, "train_log.json")
+
     for epoch in range(cfg.optim.epochs):
         ssl.train()
+        epoch_losses = []
+        t0 = time.time()
         for batch in loader:
             batch = batch.to(device) if torch.is_tensor(batch) else [b.to(device) for b in batch]
             opt.zero_grad(set_to_none=True)
             loss, logs = ssl.compute_loss(batch)
             loss.backward(); opt.step()
-        print(f"[eeg] epoch {epoch} loss={loss.item():.4f} {logs}", flush=True)
+            epoch_losses.append(loss.item())
+
+        mean_loss = sum(epoch_losses) / len(epoch_losses)
+        elapsed = time.time() - t0
+        row = {"epoch": epoch, "loss": round(mean_loss, 5), "elapsed_s": round(elapsed, 1), **{
+            k: (round(v.item(), 5) if torch.is_tensor(v) else round(v, 5) if isinstance(v, float) else v)
+            for k, v in logs.items()
+        }}
+        history.append(row)
+        print(f"[eeg] epoch {epoch:3d}  loss={mean_loss:.4f}  {elapsed:.0f}s  {logs}", flush=True)
+
+        with open(log_path, "w") as f:
+            json.dump(history, f, indent=2)
+
         torch.save({"epoch": epoch, "encoder": encoder.state_dict(),
                     "cfg": OmegaConf.to_container(cfg, resolve=True)},
                    os.path.join(ckpt_dir, "latest.pth.tar"))
-    print(f"[eeg] done -> {ckpt_dir}/latest.pth.tar")
+
+    print(f"[eeg] done -> {ckpt_dir}/latest.pth.tar  |  log -> {log_path}")
 
 
 if __name__ == "__main__":
