@@ -9,6 +9,16 @@ Frozen, in-domain SSL (TUAB-train, no labels) → freeze → linear probe on pat
 **Balanced accuracy 0.819 ± ~0.012 (3 seeds; best seed 0.833) · AUROC ~0.90 (best seed 0.901).**
 Not "0.833", not "SOTA".
 
+## Critical caveat — the random-feature floor (DISCLOSE this)
+In OUR pipeline, a **random (untrained) conv encoder + linear probe reaches ~0.79 BalAcc** on TUAB —
+EEG abnormality is power-driven, and random conv filters preserve band power. That floor is **≈
+LaBraM-linear (0.795) and ABOVE EEG2Rep / BIOT / EEGPT frozen**. So the strong frozen numbers are
+largely the *architecture + the task*; **our in-domain SSL adds ~0.04 over random (0.82 vs 0.79) plus
+~4× label efficiency** (JEPA at 25% labels ≈ random at 100%). Disclosing this is the honest, rigorous
+move: it pre-empts "is the SSL doing anything?", reframes the contribution as a *quantified* SSL
+increment (not SOTA), and is itself a sharp benchmark insight — TUAB frozen-probe is easy for simple
+power features, so several published "foundation-model" frozen numbers barely clear a random baseline.
+
 ## Where it sits — TUAB standard 2717/276 split
 | Setting | Protocol | BA | AUROC |
 |---|---|---:|---:|

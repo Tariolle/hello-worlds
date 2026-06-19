@@ -44,6 +44,8 @@ class EEGConfig:
     n_windows: int = 16            # evenly-spaced windows per recording (probe mode)
     batch_size: int = 128
     num_workers: int = 8
+    frac: float = 1.0              # SSL only: fraction of train recordings (pretrain-data-efficiency)
+    frac_seed: int = 0
     # SSL augmentation strengths (per view, in z-scored units)
     aug_noise_std: float = 0.1     # additive Gaussian noise std
     aug_scale_jitter: float = 0.2  # per-channel amplitude scale ~ U(1-j, 1+j)
@@ -89,6 +91,10 @@ class EEGDataset(torch.utils.data.Dataset):
         self.window = int(cfg.window_sec * cfg.sfreq)
         if cfg.mode == "ssl":
             self.files = _list_edf(cfg.data_root, cfg.split)
+            if getattr(cfg, "frac", 1.0) < 1.0:    # pretrain-data-efficiency: SSL on a subset
+                r = np.random.default_rng(getattr(cfg, "frac_seed", 0))
+                k = max(1, int(cfg.frac * len(self.files)))
+                self.files = sorted(np.array(self.files)[r.choice(len(self.files), k, replace=False)].tolist())
             self.items = None
         else:  # supervised / probe: one item per recording
             self.files = None
