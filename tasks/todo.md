@@ -3,13 +3,14 @@
 > Strategy, experiment matrix (2×2), owners, timeline, deck → **[../PLAN.md](../PLAN.md)**.
 > This file = execution checklist + reference numbers.
 
-## Headline (what we tell the jury)
-A controlled study: **when the latent lives on the SPD manifold of EEG channel
-covariances, which anti-collapse wins — SIGReg (isotropic-Gaussian target, as in
-Laya) or PEIRA (distribution-free)?** PEIRA is the principled choice because the
-log-mapped EEG covariance distribution is non-Gaussian; SIGReg fights it, PEIRA
-does not. We measure frozen linear-probe balanced accuracy, collapse dynamics,
-robustness, and label/data efficiency — at a tiny param/data budget.
+## Headline (what we tell the jury) — UPDATED post-result
+Controlled study: does making a frozen EEG-JEPA's anti-collapse **geometry-aware**
+(SPD-tangent) and/or **distribution-free** (PEIRA) beat ambient SIGReg on TUAB?
+**Pre-registered hypothesis (PEIRA + tangent win) is FALSIFIED** — at 3 seeds every
+cell is ~0.82, no significant effect. We ship: (1) a **strong frozen in-domain probe
+(~0.82, above frozen foundation-model numbers)**, (2) a **clean negative result** with a
+geometric mechanism (wrapped-Gaussian mis-specification, de Surrel 2025), (3)
+label/data-efficiency curves showing the value of the SSL. Honest negative > fragile positive.
 
 Parents we explicitly cite (NOT claim as ours):
 - **Laya** (arXiv 2603.16281): SIGReg/LeJEPA JEPA on EEG, TUAB frozen probe. = our ambient baseline.
@@ -18,17 +19,18 @@ Parents we explicitly cite (NOT claim as ours):
 
 ## Live findings
 - Riemannian 0-param baseline: BalAcc **0.761** / AUROC 0.810.
-- Gate C1 SIGReg×ambient: BalAcc **0.833** / AUROC 0.901, leak-free (patient-disjoint verified), no collapse.
-- **2×2 sweep (seed 1), frozen-probe BalAcc:**
+- **2×2 sweep, 3 seeds {1,1000,10000}, MEAN frozen-probe BalAcc:**
 
   | reg \ space | ambient | tangent |
   |---|---|---|
-  | VICReg | 0.806 | — |
-  | SIGReg | **0.833** | 0.818 |
-  | PEIRA  | 0.826 | 0.811 |
+  | VICReg | 0.814 | — |
+  | SIGReg | 0.819 | 0.820 (tightest var) |
+  | PEIRA  | 0.815 | 0.807 |
 
-  → At 1 seed the geometry/PEIRA hypothesis is **NOT supported**: tangent slightly *hurts* (~−0.015 both regs), PEIRA ≈ SIGReg, **no interaction**. Best = SIGReg×ambient. All beat plain VICReg.
-  → Differences ~0.01–0.03 = likely seed noise. **Run 3 seeds + error bars** before concluding, then either (a) honest negative result, or (b) give geometry a fair shot with a manifold-correct tangent (channel-cov SPD + AIRM + correct target distribution).
+  → **CLEAN NULL**: all cells ~0.82 ± seed noise, ranges overlap → no significant effect of regulariser OR space. Tangent doesn't help/hurt; PEIRA not > SIGReg; no interaction. (1-seed "tangent hurts" did NOT replicate.)
+  → The seed-1 **0.833** (SIGReg-ambient) was that cell's best seed; 3-seed mean = **0.819**. **Report ~0.82 (best 0.833), NOT 0.833.** Still > BIOT-frozen 0.78 / EEG2Rep 0.766 / Riemann 0.761.
+  → DECISION: **fold geometry → honest negative result.** Mechanism + citation (wrapped Gaussian, de Surrel 2025) → `docs/geometry_tangent_analysis.md`.
+  → Clément's `benchmark.py` (ranked comparison + protocol tracking) **merged into main**.
 
 ## Targets (frozen linear-probe, balanced accuracy, FULL 2717/276 split)
 - < 0.60 embarrassing (collapse / raw-feature regime; LaBraM/CBraMod fall here under a plain linear probe)
@@ -65,12 +67,12 @@ Parents we explicitly cite (NOT claim as ours):
 - [x] C1 SIGReg×ambient -> **BalAcc 0.833 / AUROC 0.901** ✅ GATE CLEARED (no collapse, eff_rank 27→65, ~3 min)
 - [x] train/eval patient-disjoint VERIFIED (2076 vs 253 patients, overlap 0) — 0.833 is leak-free
 
-### NEXT — task distribution (post-gate phase)
-- [~] **Florent** — 2×2 sweep {C0..C4} seed 1 → table (RUNNING), then 3-seed {1,1000,10000} + error bars on the key comparison (C2 vs C4 + interaction)
-- [ ] **Florent** — quick architecture/training upgrades if they raise frozen BalAcc (encoder, SIGReg λ, augments)
-- [ ] **Clément** — random-encoder floor; strengthen Riemann baseline toward 0.86 (whole-recording cov); collapse-dynamics writeup + PEIRA theory + "why collapse / why our reg avoids it" (jury criterion); manifold-correctness of the tangent arm
-- [ ] **Yoann** — label-fraction efficiency curve (1/5/10/25/100%, novel on TUAB); robustness curve (noise / channel-dropout at probe); all figures (2×2 bars+error bars, collapse curves, label-frac, robustness, vs-baselines); wandb/demo
-- [ ] **Hippolyte** — 10-min deck + storytelling; honest positioning (frozen vs FT, in-domain vs cross-dataset); literature/baseline slides; **run the Deep Research** (prompt below); PM/timekeeper
+### NEXT — task distribution (post-result: fold geometry, ship the honest negative)
+- [x] **Florent** — 2×2 × 3 seeds DONE (clean null). NEXT, in order: (1) **patient-disjoint TRAIN dev-split in `eval.py`** = LEAKAGE GATE before ANY hyperparameter selection; (2) **mean⊕max pooling + L2-norm** re-score on the existing SIGReg-ambient ckpt; (3) **label-efficiency curve** (re-fit probe on 1/2/5/10/25/50/100% train labels, 5 seeds) + random floor; (4) pretrain-data-efficiency curve if time.
+- [x] **Clément** — ✅ `benchmark.py` (ranked comparison + protocol tracking, MERGED) + ✅ geometry/wrapped-Gaussian analysis (`docs/geometry_tangent_analysis.md`). NEXT: feed the benchmark with our 3-seed **means + 95% CIs**; own the negative-result + wrapped-Gaussian future-work slides.
+- [ ] **Yoann** — the **single figure = 2-panel "value of self-supervision"** (BalAcc vs %labels | vs %pretrain-data, overlays: random floor, Riemann 0.761, FT-foundation-model band labelled "fine-tuned, cross-corpus"); collapse-dynamics figure from TensorBoard; populate Clément's benchmark plots; demo.
+- [ ] **Hippolyte** — 10-min deck; **honest positioning** (~0.82 frozen ≈ FT foundation models *while frozen*; the clean null is the contribution; DO-NOT-claim list); run the Deep Research; PM/timekeeper.
+- **DROP (adversarial review):** the tangent geometry fix, C/λ/projector hp-sweeps (test-leakage + within-noise), longer-pretrain, attention-pool. Don't touch `geometry.py`.
 
 ## 24h sequencing (deadlines: 17:30 code, 18:00 slides, 19:00 jury)
 - ~~H0–1  install on Dalia + SSH/venv/smoke~~ ✅
