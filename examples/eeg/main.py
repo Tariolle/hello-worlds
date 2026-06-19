@@ -94,14 +94,15 @@ class SSLModule(nn.Module):
             h = tangent_features(self.encoder.cov_features(x))
         return self.projector(h)
 
-    def compute_loss(self, batch):
+    def compute_loss(self, batch, with_metrics=True):
         v1, v2 = batch
         z1, z2 = self._embed(v1), self._embed(v2)
         out = self.reg(z1, z2)
         loss = out["loss"]
         logs = {k: (round(v.item(), 4) if torch.is_tensor(v) else v)
                 for k, v in out.items() if k != "loss"}
-        logs.update(collapse_metrics(z1.detach()))
+        if with_metrics:
+            logs.update(collapse_metrics(z1.detach()))
         return loss, logs
 
 
@@ -133,10 +134,11 @@ def run(fname="examples/eeg/cfgs/train.yaml", cfg=None, folder=None, **overrides
     os.makedirs(ckpt_dir, exist_ok=True)
     for epoch in range(cfg.optim.epochs):
         ssl.train()
-        for batch in loader:
+        last_batch_idx = len(loader) - 1
+        for batch_idx, batch in enumerate(loader):
             batch = batch.to(device) if torch.is_tensor(batch) else [b.to(device) for b in batch]
             opt.zero_grad(set_to_none=True)
-            loss, logs = ssl.compute_loss(batch)
+            loss, logs = ssl.compute_loss(batch, with_metrics=batch_idx == last_batch_idx)
             loss.backward(); opt.step()
         print(f"[eeg] epoch {epoch} loss={loss.item():.4f} {logs}", flush=True)
         torch.save({"epoch": epoch, "encoder": encoder.state_dict(),

@@ -93,13 +93,23 @@ class EEGDataset(torch.utils.data.Dataset):
         else:  # supervised / probe: one item per recording
             self.files = None
             self.items = _list_labelled(cfg.data_root, cfg.split)
-        # one RNG per worker, re-seeded lazily in __getitem__ via torch seed
+        # One RNG per worker, seeded lazily from PyTorch's worker seed.
         self._rng = np.random.default_rng()
+        self._rng_seed = None
 
     def __len__(self):
         if self.cfg.mode == "ssl":
             return self.cfg.epoch_size
         return len(self.items)
+
+    def _ensure_rng(self):
+        """Seed the NumPy RNG once per worker instead of rebuilding it per sample."""
+        worker = torch.utils.data.get_worker_info()
+        seed = worker.seed if worker is not None else torch.initial_seed()
+        seed = int(seed % 2**32)
+        if self._rng_seed != seed:
+            self._rng = np.random.default_rng(seed)
+            self._rng_seed = seed
 
     # ------------------------------------------------------------------ #
     # EDF reading (partial reads — only the windows we need)
@@ -179,8 +189,7 @@ class EEGDataset(torch.utils.data.Dataset):
         return x
 
     def __getitem__(self, i):
-        # re-seed per call so workers diverge (torch sets a per-worker base seed)
-        self._rng = np.random.default_rng(torch.randint(0, 2**31 - 1, (1,)).item())
+        self._ensure_rng()
         if self.cfg.mode == "ssl":
             x = self._read_random_window()
             if x is None:  # fallback: zeros (rare)
