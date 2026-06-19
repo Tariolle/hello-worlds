@@ -16,6 +16,20 @@ Parents we explicitly cite (NOT claim as ours):
 - **EEG-ReMinD** (arXiv 2501.08139): Riemannian SPD SSL on EEG, but *reconstruction*, not JEPA.
 - **PEIRA** (arXiv 2605.17671, Arbel/Terver/Ponce): the regulariser; verified, distribution-free.
 
+## Live findings
+- Riemannian 0-param baseline: BalAcc **0.761** / AUROC 0.810.
+- Gate C1 SIGReg×ambient: BalAcc **0.833** / AUROC 0.901, leak-free (patient-disjoint verified), no collapse.
+- **2×2 sweep (seed 1), frozen-probe BalAcc:**
+
+  | reg \ space | ambient | tangent |
+  |---|---|---|
+  | VICReg | 0.806 | — |
+  | SIGReg | **0.833** | 0.818 |
+  | PEIRA  | 0.826 | 0.811 |
+
+  → At 1 seed the geometry/PEIRA hypothesis is **NOT supported**: tangent slightly *hurts* (~−0.015 both regs), PEIRA ≈ SIGReg, **no interaction**. Best = SIGReg×ambient. All beat plain VICReg.
+  → Differences ~0.01–0.03 = likely seed noise. **Run 3 seeds + error bars** before concluding, then either (a) honest negative result, or (b) give geometry a fair shot with a manifold-correct tangent (channel-cov SPD + AIRM + correct target distribution).
+
 ## Targets (frozen linear-probe, balanced accuracy, FULL 2717/276 split)
 - < 0.60 embarrassing (collapse / raw-feature regime; LaBraM/CBraMod fall here under a plain linear probe)
 - 0.72–0.78 respectable (EEGPT/BIOT frozen level)
@@ -49,19 +63,21 @@ Parents we explicitly cite (NOT claim as ours):
 - [x] baseline_riemann on TUAB ✅ EDF pipeline OK + yardstick **BalAcc 0.761 / AUROC 0.810**
       (quick 16-window mean; ~0.86 reachable with whole-recording covariance if we want a harder bar)
 - [x] C1 SIGReg×ambient -> **BalAcc 0.833 / AUROC 0.901** ✅ GATE CLEARED (no collapse, eff_rank 27→65, ~3 min)
-- [ ] VERIFY train/eval patient-disjoint (no patient ID overlap) — the 0.833 is strong, make it airtight
-- [ ] Fan out 2×2 {C1..C4} + C0 (VICReg ref), 1 seed -> populate the table  ← IN PROGRESS
-- [ ] 3-seed {1,1000,10000} the key comparison (C2 vs C4 + the interaction)
-- [ ] Label-fraction curve (1/5/10/25/100%) — novel, ~free
-- [ ] Robustness curve (noise / channel-dropout at probe time)
-- [ ] Figures + 10-min deck + report
+- [x] train/eval patient-disjoint VERIFIED (2076 vs 253 patients, overlap 0) — 0.833 is leak-free
+
+### NEXT — task distribution (post-gate phase)
+- [~] **Florent** — 2×2 sweep {C0..C4} seed 1 → table (RUNNING), then 3-seed {1,1000,10000} + error bars on the key comparison (C2 vs C4 + interaction)
+- [ ] **Florent** — quick architecture/training upgrades if they raise frozen BalAcc (encoder, SIGReg λ, augments)
+- [ ] **Clément** — random-encoder floor; strengthen Riemann baseline toward 0.86 (whole-recording cov); collapse-dynamics writeup + PEIRA theory + "why collapse / why our reg avoids it" (jury criterion); manifold-correctness of the tangent arm
+- [ ] **Yoann** — label-fraction efficiency curve (1/5/10/25/100%, novel on TUAB); robustness curve (noise / channel-dropout at probe); all figures (2×2 bars+error bars, collapse curves, label-frac, robustness, vs-baselines); wandb/demo
+- [ ] **Hippolyte** — 10-min deck + storytelling; honest positioning (frozen vs FT, in-domain vs cross-dataset); literature/baseline slides; **run the Deep Research** (prompt below); PM/timekeeper
 
 ## 24h sequencing (deadlines: 17:30 code, 18:00 slides, 19:00 jury)
-- ~~H0–1  install on Dalia, confirm SLURM partition/account + TUAB path~~ ✅ done (+ SSH/venv/smoke)
-- H1–4  baseline_riemann (data sanity + yardstick); ~~smoke main.py~~ ✅; build probe vs random encoder
-- H4–8  Rung 0 trains without collapse -> first number  (GATE — must clear by ~H8)
-- H8–16 Rung 1 + Rung 2; 3 GPUs = 3 parallel arms; one change at a time
-- H16–21 lock model, robustness + label-fraction, figures, 3-seed error bars
+- ~~H0–1  install on Dalia + SSH/venv/smoke~~ ✅
+- ~~H1–4  baseline_riemann (0.761) + smoke + probe harness~~ ✅
+- ~~H4–8  Rung 0 GATE~~ ✅ cleared at 0.833
+- **H8–16 ← WE ARE HERE: 3-seed 2×2 + error bars; decide negative-result vs geometry-fix; robustness + label-fraction**
+- H16–21 lock model, figures, error bars
 - H21–24 slides + report + demo
 
 ## Team division (2 tech, 1 product, 1 commercial)
