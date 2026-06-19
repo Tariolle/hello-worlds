@@ -24,10 +24,14 @@ from examples.eeg.main import build_encoder
 
 
 @torch.no_grad()
-def extract_features(encoder, split, device, data_cfg=None):
+def extract_features(encoder, split, device, data_cfg=None, pool="mean"):
     """Frozen encoder -> [N_rec, D] recording-level features + labels.
 
-    One embedding per recording: encode its N windows and mean-pool them.
+    Per recording, encode its N windows and mean-pool over windows. `pool` sets the
+    per-window temporal pooling of the feature map [B*N, D, T']:
+      * "mean"    -> time-mean only                 -> [N_rec, D]   (default)
+      * "meanstd" -> concat(time-mean, time-std)    -> [N_rec, 2D]  (ablation: keeps
+                     second-order temporal structure, abnormality is power/variance-driven)
     """
     cfg = EEGConfig(**(data_cfg or {}))
     cfg.split, cfg.mode = split, "probe"
@@ -38,7 +42,12 @@ def extract_features(encoder, split, device, data_cfg=None):
     for wins, labels, ok in loader:          # wins: [B, N, C, T]
         B, N = wins.shape[0], wins.shape[1]
         flat = wins.reshape(B * N, *wins.shape[2:]).to(device, non_blocking=True)
-        z = encoder.represent(flat).reshape(B, N, -1).mean(dim=1).cpu().numpy()  # [B, D]
+        if pool == "meanstd":
+            fm = encoder.feature_map(flat)                              # [B*N, D, T']
+            zz = torch.cat([fm.mean(dim=-1), fm.std(dim=-1)], dim=1)    # [B*N, 2D]
+        else:
+            zz = encoder.represent(flat)                               # [B*N, D]
+        z = zz.reshape(B, N, -1).mean(dim=1).cpu().numpy()             # [B, D or 2D]
         for k in range(B):
             if bool(ok[k]):                  # drop unreadable recordings
                 X.append(z[k]); y.append(int(labels[k]))
@@ -65,6 +74,7 @@ def probe(Xtr, ytr, Xev, yev):
 def main():
     argv = sys.argv
     ckpt = argv[argv.index("--ckpt") + 1]
+    pool = argv[argv.index("--pool") + 1] if "--pool" in argv else "mean"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     state = torch.load(ckpt, map_location=device, weights_only=False)
@@ -74,17 +84,17 @@ def main():
     encoder = build_encoder(cfg.model).to(device)
     encoder.load_state_dict(state["encoder"]); encoder.eval()
 
-    print("[eeg-eval] extracting TRAIN embeddings (fit set)...", flush=True)
-    Xtr, ytr = extract_features(encoder, "train", device, data_cfg)
+    print(f"[eeg-eval] pool={pool} | extracting TRAIN embeddings (fit set)...", flush=True)
+    Xtr, ytr = extract_features(encoder, "train", device, data_cfg, pool)
     print("[eeg-eval] extracting EVAL embeddings (held-out patients)...", flush=True)
-    Xev, yev = extract_features(encoder, "eval", device, data_cfg)
-    print("[eeg-eval] TRAINED:", probe(Xtr, ytr, Xev, yev))
+    Xev, yev = extract_features(encoder, "eval", device, data_cfg, pool)
+    print(f"[eeg-eval] TRAINED (pool={pool}):", probe(Xtr, ytr, Xev, yev))
 
     if "--floor" in argv:  # same architecture, untrained -> random-encoder floor
         rnd = build_encoder(cfg.model).to(device).eval()
-        Rtr, ry = extract_features(rnd, "train", device, data_cfg)
-        Rev, rey = extract_features(rnd, "eval", device, data_cfg)
-        print("[eeg-eval] RANDOM floor:", probe(Rtr, ry, Rev, rey))
+        Rtr, ry = extract_features(rnd, "train", device, data_cfg, pool)
+        Rev, rey = extract_features(rnd, "eval", device, data_cfg, pool)
+        print(f"[eeg-eval] RANDOM floor (pool={pool}):", probe(Rtr, ry, Rev, rey))
 
 
 if __name__ == "__main__":

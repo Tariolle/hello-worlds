@@ -123,6 +123,8 @@ class EEGDataset(torch.utils.data.Dataset):
                 x = np.empty((cfg.n_channels, self.window), dtype=np.float32)
                 for c in range(cfg.n_channels):
                     x[c] = f.readSignal(c, start, self.window)
+            except Exception:
+                continue  # corrupt payload (header OK): skip + retry, don't crash the worker
             finally:
                 f._close()
             return _zscore(x, axis=1)
