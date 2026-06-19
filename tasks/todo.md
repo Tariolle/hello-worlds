@@ -48,8 +48,9 @@ Parents we explicitly cite (NOT claim as ours):
 - [x] `git pull` workflow on cluster (HTTPS + fine-grained PAT; SSH is proxy-blocked)
 - [x] baseline_riemann on TUAB ✅ EDF pipeline OK + yardstick **BalAcc 0.761 / AUROC 0.810**
       (quick 16-window mean; ~0.86 reachable with whole-recording covariance if we want a harder bar)
-- [ ] C1 SIGReg×ambient full run -> first probe number (THE qualification gate)  ← IN PROGRESS
-- [ ] Fan out 2×2 {C1..C4} + C0 (VICReg ref) across 3 GPUs, 1 seed -> populate the table
+- [x] C1 SIGReg×ambient -> **BalAcc 0.833 / AUROC 0.901** ✅ GATE CLEARED (no collapse, eff_rank 27→65, ~3 min)
+- [ ] VERIFY train/eval patient-disjoint (no patient ID overlap) — the 0.833 is strong, make it airtight
+- [ ] Fan out 2×2 {C1..C4} + C0 (VICReg ref), 1 seed -> populate the table  ← IN PROGRESS
 - [ ] 3-seed {1,1000,10000} the key comparison (C2 vs C4 + the interaction)
 - [ ] Label-fraction curve (1/5/10/25/100%) — novel, ~free
 - [ ] Robustness curve (noise / channel-dropout at probe time)
