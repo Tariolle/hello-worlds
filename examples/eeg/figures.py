@@ -56,9 +56,8 @@ import numpy as np
 # --------------------------------------------------------------------------- #
 
 RIEMANN_BAL_ACC = 0.761
-# Random floor: run `python -m examples.eeg.benchmark --run-random-floor`
-# and fill in below. Placeholder until measured.
-RANDOM_FLOOR_BAL_ACC = None   # set once measured
+# Random floor measured via label_eff.json (random encoder @ 100% labels)
+RANDOM_FLOOR_BAL_ACC = 0.7895
 
 # Fine-tuned foundation models band (comparable cross-corpus references)
 FT_BAND_LOW = 0.796   # BIOT fine-tuned
@@ -68,13 +67,14 @@ FT_BAND_HIGH = 0.829  # CBraMod fine-tuned
 BIOT_FROZEN = 0.780
 EEG2REP_FROZEN = 0.766
 
-# Hardcoded 3-seed means — used as default when no CSV is supplied
+# Real 3-seed results from Dalia cluster (seeds 1, 1000, 10000)
+# Computed from train_7470{6-10}.out + train_7476{6-75}.out
 _2X2_DEFAULTS: list[dict[str, Any]] = [
-    {"reg": "VICReg", "space": "ambient", "bal_acc_mean": 0.814, "bal_acc_std": 0.006},
-    {"reg": "SIGReg", "space": "ambient", "bal_acc_mean": 0.819, "bal_acc_std": 0.007},
-    {"reg": "SIGReg", "space": "tangent", "bal_acc_mean": 0.820, "bal_acc_std": 0.005},
-    {"reg": "PEIRA",  "space": "ambient", "bal_acc_mean": 0.815, "bal_acc_std": 0.006},
-    {"reg": "PEIRA",  "space": "tangent", "bal_acc_mean": 0.807, "bal_acc_std": 0.008},
+    {"reg": "VICReg", "space": "ambient", "bal_acc_mean": 0.8138, "bal_acc_std": 0.0107},
+    {"reg": "SIGReg", "space": "ambient", "bal_acc_mean": 0.8185, "bal_acc_std": 0.0104},
+    {"reg": "SIGReg", "space": "tangent", "bal_acc_mean": 0.8196, "bal_acc_std": 0.0024},
+    {"reg": "PEIRA",  "space": "ambient", "bal_acc_mean": 0.8149, "bal_acc_std": 0.0184},
+    {"reg": "PEIRA",  "space": "tangent", "bal_acc_mean": 0.8068, "bal_acc_std": 0.0042},
 ]
 
 # Colours
@@ -114,6 +114,27 @@ def _load_eff_csv(path: str | Path) -> tuple[list[float], list[float], list[floa
     return [fracs[i] for i in order], [means[i] for i in order], [stds[i] for i in order]
 
 
+def _load_label_eff_json(path: str | Path) -> tuple[tuple, tuple]:
+    """Load Florent's label_eff.json.
+
+    Returns ((jepa_fracs, jepa_means, jepa_stds), (rand_fracs, rand_means, rand_stds)).
+    """
+    import json
+    with open(path, encoding="utf-8") as f:
+        d = json.load(f)
+
+    def _parse(rows):
+        fracs = [r["frac"] for r in rows]
+        means = [r["mean"] for r in rows]
+        stds  = [r["std"]  for r in rows]
+        order = np.argsort(fracs)
+        return ([fracs[i] for i in order],
+                [means[i] for i in order],
+                [stds[i]  for i in order])
+
+    return _parse(d["jepa"]), _parse(d["random"])
+
+
 def _parse_log_collapse(log_path: str | Path) -> dict[str, list]:
     """Parse stdout lines from main.py into per-cell collapse metrics.
 
@@ -138,7 +159,7 @@ def _parse_log_collapse(log_path: str | Path) -> dict[str, list]:
 
 
 def _load_collapse_csv(path: str | Path) -> dict[str, list]:
-    """Load collapse CSV with columns: epoch,cell,eff_rank,mean_std."""
+    """Load collapse CSV with columns: epoch,cell,eff_rank,mean_std (or feat_std)."""
     data: dict[str, dict] = {}
     with open(path, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
@@ -147,8 +168,36 @@ def _load_collapse_csv(path: str | Path) -> dict[str, list]:
                 data[cell] = {"epoch": [], "eff_rank": [], "mean_std": []}
             data[cell]["epoch"].append(int(r["epoch"]))
             data[cell]["eff_rank"].append(float(r["eff_rank"]))
-            data[cell]["mean_std"].append(float(r["mean_std"]))
+            std_val = r.get("mean_std") or r.get("feat_std") or "0"
+            data[cell]["mean_std"].append(float(std_val))
     return data
+
+
+def _load_collapse_json(path: str | Path) -> dict[str, dict]:
+    """Load collapse JSON.
+
+    Accepts two formats:
+      list-of-dicts: {cell: [{epoch, eff_rank, feat_std}, ...]}
+      parallel-lists: {cell: {epoch: [...], eff_rank: [...], feat_std: [...]}}
+    """
+    import json
+    with open(path, encoding="utf-8") as f:
+        raw = json.load(f)
+    out = {}
+    for cell, data in raw.items():
+        if isinstance(data, list):
+            out[cell] = {
+                "epoch":    [r["epoch"]    for r in data],
+                "eff_rank": [r["eff_rank"] for r in data],
+                "mean_std": [r.get("feat_std", r.get("mean_std", 0)) for r in data],
+            }
+        else:
+            out[cell] = {
+                "epoch":    data.get("epoch", []),
+                "eff_rank": data.get("eff_rank", []),
+                "mean_std": data.get("feat_std", data.get("mean_std", [])),
+            }
+    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -230,16 +279,15 @@ def plot_value_of_ssl(
     label_data: tuple | None,
     data_data: tuple | None,
     out_path: str | Path,
+    random_label_data: tuple | None = None,
 ) -> None:
     """2-panel plot.
 
-    label_data / data_data: (fracs, means, stds) as returned by _load_eff_csv,
-    or None to skip that panel.
+    label_data / data_data: (fracs, means, stds) as returned by _load_eff_csv.
+    random_label_data: optional random-encoder curve for the label panel.
 
-    Reference overlays on both panels:
-      - horizontal: Riemann 0-param, BIOT frozen, EEG2Rep frozen
-      - shaded band: fine-tuned foundation models
-      - dotted: random encoder floor (if known)
+    Reference overlays: Riemann 0-param, BIOT frozen, EEG2Rep frozen,
+    fine-tuned FM band, random floor line.
     """
     n_panels = int(label_data is not None) + int(data_data is not None)
     if n_panels == 0:
@@ -249,13 +297,13 @@ def plot_value_of_ssl(
     fig, axes = plt.subplots(1, n_panels, figsize=(6 * n_panels, 5), squeeze=False)
     axes = axes[0]
 
-    panels = []
+    panels: list[tuple] = []
     if label_data is not None:
-        panels.append(("% labelled train data", label_data))
+        panels.append(("% labelled train data", label_data, random_label_data))
     if data_data is not None:
-        panels.append(("% pretrain data", data_data))
+        panels.append(("% pretrain data", data_data, None))
 
-    for ax, (xlabel, (fracs, means, stds)) in zip(axes, panels):
+    for ax, (xlabel, (fracs, means, stds), rand_curve) in zip(axes, panels):
         xs = np.array(fracs) * 100
         ys = np.array(means)
         es = np.array(stds)
@@ -264,6 +312,14 @@ def plot_value_of_ssl(
         ax.plot(xs, ys, "o-", color=_COL_AMBIENT, lw=2,
                 label="EEG-JEPA SIGReg (ours, frozen)")
 
+        if rand_curve is not None:
+            rx = np.array(rand_curve[0]) * 100
+            ry = np.array(rand_curve[1])
+            re_ = np.array(rand_curve[2])
+            ax.fill_between(rx, ry - re_, ry + re_, color=_COL_RANDOM, alpha=0.12)
+            ax.plot(rx, ry, "s--", color=_COL_RANDOM, lw=1.5,
+                    label="random encoder (untrained)")
+
         # Reference lines
         ax.axhline(RIEMANN_BAL_ACC, color=_COL_RIEMANN, lw=1.5, ls="--",
                    label=f"Riemannian 0-param ({RIEMANN_BAL_ACC:.3f})")
@@ -271,17 +327,14 @@ def plot_value_of_ssl(
                    label=f"BIOT frozen ({BIOT_FROZEN:.3f})")
         ax.axhline(EEG2REP_FROZEN, color="#56ccf2", lw=1.2, ls="--",
                    label=f"EEG2Rep frozen ({EEG2REP_FROZEN:.3f})")
-        if RANDOM_FLOOR_BAL_ACC is not None:
-            ax.axhline(RANDOM_FLOOR_BAL_ACC, color=_COL_RANDOM, lw=1.0, ls=":",
-                       label=f"random encoder floor ({RANDOM_FLOOR_BAL_ACC:.3f})")
         ax.axhspan(FT_BAND_LOW, FT_BAND_HIGH, color=_COL_FT_BAND, alpha=0.08)
         ax.axhline(FT_BAND_LOW,  color=_COL_FT_BAND, lw=0.7, ls="--", alpha=0.4)
         ax.axhline(FT_BAND_HIGH, color=_COL_FT_BAND, lw=0.7, ls="--", alpha=0.4)
         ft_patch = mpatches.Patch(color=_COL_FT_BAND, alpha=0.2,
                                   label=f"fine-tuned FMs [{FT_BAND_LOW:.3f}–{FT_BAND_HIGH:.3f}]"
                                         "\n(cross-corpus, full fine-tune)")
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles + [ft_patch], labels + [ft_patch.get_label()],
+        handles, labels_ = ax.get_legend_handles_labels()
+        ax.legend(handles + [ft_patch], labels_ + [ft_patch.get_label()],
                   fontsize=7.5, loc="lower right")
 
         ax.set_xscale("log")
@@ -289,7 +342,8 @@ def plot_value_of_ssl(
         ax.set_ylabel("Balanced accuracy (frozen linear probe)", fontsize=10)
         ax.set_title(f"Value of self-supervision: BalAcc vs {xlabel}", fontsize=9)
         ax.grid(alpha=0.25)
-        ax.set_ylim(0.5, max(float(np.max(ys)), FT_BAND_HIGH) + 0.03)
+        ymin = 0.55
+        ax.set_ylim(ymin, max(float(np.max(ys)), FT_BAND_HIGH) + 0.03)
 
     fig.suptitle("EEG-JEPA TUAB — how much supervision / data do we need?\n"
                  "(full 2717/276 patient-disjoint split, SIGReg-ambient best cell)",
@@ -379,6 +433,8 @@ def build_argparser() -> argparse.ArgumentParser:
     p2 = sub.add_parser("fig2", help="2-panel value-of-SSL efficiency curves")
     p2.add_argument("--label-csv", default=None,
                     help="CSV for label-efficiency curve (fraction,bal_acc_mean,bal_acc_std).")
+    p2.add_argument("--label-json", default=None,
+                    help="Florent's label_eff.json (contains both JEPA and random curves).")
     p2.add_argument("--data-csv", default=None,
                     help="CSV for pretrain-data-efficiency curve (same format). Optional.")
     p2.add_argument("--out", default=None, help="Output PNG path.")
@@ -391,6 +447,8 @@ def build_argparser() -> argparse.ArgumentParser:
     p3.add_argument("--csv", default=None,
                     help="Path to collapse CSV (epoch,cell,eff_rank,mean_std). "
                          "Alternative to --log.")
+    p3.add_argument("--json", default=None,
+                    help="Path to collapse JSON from extract_collapse.py helper.")
     p3.add_argument("--out", default=None, help="Output PNG path.")
     _add_common(p3)
 
@@ -417,25 +475,34 @@ def main(argv=None):
         plot_2x2(rows, out)
 
     if args.cmd in ("fig2", "all"):
-        label_csv = getattr(args, "label_csv", None)
-        data_csv  = getattr(args, "data_csv", None)
-        if label_csv is None and data_csv is None:
+        label_csv  = getattr(args, "label_csv", None)
+        label_json = getattr(args, "label_json", None)
+        data_csv   = getattr(args, "data_csv", None)
+        label_data = rand_label = None
+        if label_json:
+            label_data, rand_label = _load_label_eff_json(label_json)
+        elif label_csv:
+            label_data = _load_eff_csv(label_csv)
+        if label_data is None and data_csv is None:
             if args.cmd == "fig2":
-                print("[figures] fig2: supply --label-csv and/or --data-csv", file=sys.stderr)
+                print("[figures] fig2: supply --label-json, --label-csv, and/or --data-csv",
+                      file=sys.stderr)
                 sys.exit(1)
             else:
-                print("[figures] fig2: skipped (no CSV supplied)", file=sys.stderr)
+                print("[figures] fig2: skipped (no data supplied)", file=sys.stderr)
         else:
-            label_data = _load_eff_csv(label_csv) if label_csv else None
-            data_data  = _load_eff_csv(data_csv)  if data_csv  else None
+            data_data = _load_eff_csv(data_csv) if data_csv else None
             out = getattr(args, "out", None) or str(out_dir / "fig2_ssl_value.png")
-            plot_value_of_ssl(label_data, data_data, out)
+            plot_value_of_ssl(label_data, data_data, out, random_label_data=rand_label)
 
     if args.cmd in ("fig3", "all"):
-        logs = getattr(args, "log", []) or getattr(args, "collapse_logs", [])
-        collapse_csv = getattr(args, "csv", None) or getattr(args, "collapse_csv", None)
+        logs         = getattr(args, "log",           []) or getattr(args, "collapse_logs", [])
+        collapse_csv = getattr(args, "csv",           None) or getattr(args, "collapse_csv", None)
+        collapse_json= getattr(args, "json",          None) or getattr(args, "collapse_json", None)
         collapse_data: dict = {}
-        if collapse_csv:
+        if collapse_json:
+            collapse_data = _load_collapse_json(collapse_json)
+        elif collapse_csv:
             collapse_data = _load_collapse_csv(collapse_csv)
         for log_path in logs:
             collapse_data.update(_parse_log_collapse(log_path))
@@ -443,10 +510,10 @@ def main(argv=None):
         if collapse_data:
             plot_collapse_dynamics(collapse_data, out)
         elif args.cmd == "fig3":
-            print("[figures] fig3: supply --log or --csv", file=sys.stderr)
+            print("[figures] fig3: supply --json, --log, or --csv", file=sys.stderr)
             sys.exit(1)
         else:
-            print("[figures] fig3: skipped (no log/csv supplied)", file=sys.stderr)
+            print("[figures] fig3: skipped (no data supplied)", file=sys.stderr)
 
 
 if __name__ == "__main__":
