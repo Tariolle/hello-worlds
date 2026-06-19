@@ -55,9 +55,11 @@ class PEIRALoss(nn.Module):
         self._update_stats(z1.detach(), z2.detach())
         k = self.N.shape[0]
         eye = torch.eye(k, device=z1.device, dtype=z1.dtype)
-        Ninv = torch.linalg.solve(self.N + self.lam * eye, eye).detach()
-        P = (self.Sigma @ Ninv).detach()          # ridge regressor, stop-grad
-        Q = Ninv                                   # already detached
+        with torch.no_grad():
+            chol = torch.linalg.cholesky(self.N + self.lam * eye)
+            Ninv = torch.cholesky_inverse(chol)
+            P = self.Sigma @ Ninv                 # ridge regressor, stop-grad
+            Q = Ninv
         rx = z1 @ P.T - z2                          # grad flows via z1, z2 only
         ry = z2 @ P.T - z1
         term = (z1 * (rx @ Q.T)).sum(dim=1) + (z2 * (ry @ Q.T)).sum(dim=1)

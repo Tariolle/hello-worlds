@@ -361,15 +361,18 @@ def all_reduce(x, op):
 def epps_pulley(x, t_min=-3, t_max=3, n_points=10):
     """Epps-Pulley test statistic for Gaussianity."""
     # integration points
-    t = torch.linspace(t_min, t_max, n_points, device=x.device)
+    t = torch.linspace(t_min, t_max, n_points, device=x.device, dtype=x.dtype)
     # theoretical CF for N(0, 1)
     exp_f = torch.exp(-0.5 * t**2)
-    # ECF
+    # Empirical characteristic function, kept in real tensors to avoid the
+    # extra memory and kernel overhead of complex-valued exp.
     x_t = x.unsqueeze(2) * t  # (N, M, T)
-    ecf = (1j * x_t).exp().mean(0)
-    ecf = all_reduce(ecf, op="AVG")
+    ecf_re = torch.cos(x_t).mean(0)
+    ecf_im = torch.sin(x_t).mean(0)
+    ecf_re = all_reduce(ecf_re, op="AVG")
+    ecf_im = all_reduce(ecf_im, op="AVG")
     # weighted L2 distance
-    err = exp_f * (ecf - exp_f).abs() ** 2
+    err = exp_f * ((ecf_re - exp_f).pow(2) + ecf_im.pow(2))
     T = torch.trapz(err, t, dim=1)
     return T
 
