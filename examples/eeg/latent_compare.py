@@ -59,9 +59,13 @@ def main():
     a = ap.parse_args()
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     W = a.work
+    # All four read via the SAME frozen recipe (represent() ambient 256-d -> mean-pool
+    # -> StandardScaler -> silhouette); labels name the SSL *training* variant only.
+    # "Random-init" = same architecture, weights never trained (a control isolating the
+    # contribution of SSL training, NOT a baseline we claim to beat).
     ENCS = [
-        ("SIGReg (ours)", f"{W}/checkpoints/c1_sigreg_ambient_s1/latest.pth.tar", False),
-        ("Random", f"{W}/checkpoints/c1_sigreg_ambient_s1/latest.pth.tar", True),
+        ("SIGReg-ambient (ours)", f"{W}/checkpoints/c1_sigreg_ambient_s1/latest.pth.tar", False),
+        ("Random-init (control)", f"{W}/checkpoints/c1_sigreg_ambient_s1/latest.pth.tar", True),
         ("SIGReg-tangent", f"{W}/checkpoints/c2_sigreg_tangent_s1/latest.pth.tar", False),
         ("PEIRA-tangent", f"{W}/checkpoints/c4_peira_tangent_s1/latest.pth.tar", False),
     ]
@@ -88,7 +92,9 @@ def main():
             if j == 0:
                 ax.set_ylabel(m, fontsize=10)
     axes[0][-1].legend(fontsize=7, markerscale=1.5, loc="upper right")
-    fig.suptitle("Frozen latent space on TUAB eval — normal vs abnormal (recording-level)")
+    fig.suptitle("Frozen latent space on TUAB eval — normal vs abnormal (recording-level)\n"
+                 "same frozen ambient represent() readout for all; silhouette is on full-dim "
+                 "features (the 2-D map is illustrative)")
     fig.tight_layout()
     import os
     out = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..",
