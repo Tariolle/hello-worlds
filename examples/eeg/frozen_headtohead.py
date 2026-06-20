@@ -1,18 +1,11 @@
-"""Frozen head-to-head on TUAB — the apples-to-apples comparison EEG-FM-Bench proposes.
+"""Frozen head-to-head on TUAB — apples-to-apples FROZEN linear-probe (jury figure).
 
-EVERY bar is FROZEN linear-probe balanced accuracy (encoder frozen, only a linear
-head is fit). This is the regime EEG-FM-Bench audits, where foundation models
-*collapse* — and where our in-domain JEPA holds ~0.82. The fine-tuned FM band is a
-DIFFERENT, easier setting (weights updated) and is shown shaded for context only;
-it is NOT an apples-to-apples comparison to a frozen probe (this is the exact
-mislabelling we are fixing — the old value_of_ssl figure only showed that band).
-
-NUMBERS — verify against the cited sources before the jury:
-  frozen FMs : todo.md "frozen linear probe (consistent protocol)" / EEG-FM-Bench
-               frozen-backbone TUAB collapse (LaBraM 0.604, CBraMod 0.547,
-               EEGPT 0.766, BIOT 0.780).
-  ours/random/riemann : measured locally (ours = 3-seed mean, SIGReg-ambient).
-  fine-tuned band     : LaBraM-Base .. CBraMod fine-tuned (benchmark.yaml).
+All bars are FROZEN linear-probe balanced accuracy (encoder frozen, only a linear
+head is fit). Foundation-model numbers are quoted VERBATIM from EEG-FM-Bench
+(Cui et al., arXiv 2508.17742, Table 1, frozen strategy) — we cite, we did not
+re-measure. Our SIGReg bar is IN-DOMAIN (pretrained on TUAB-train); the
+apples-to-apples general-pretrain bar (TUSZ -> frozen TUAB) is added once it lands.
+The fine-tuned FM band is a different, easier setting — shaded for context only.
 
 Run (local, no GPU):  python examples/eeg/frozen_headtohead.py
 """
@@ -22,33 +15,35 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-# (label, balanced_acc, kind)   kind: ours | frozen_fm | floor
+# (label, balanced_acc, std, kind)   FM rows: EEG-FM-Bench Table 1 (frozen, TUAB)
 BARS = [
-    ("CBraMod (frozen)", 0.547, "frozen_fm"),
-    ("LaBraM (frozen)", 0.604, "frozen_fm"),
-    ("Riemannian 0-param", 0.761, "floor"),
-    ("EEGPT (frozen)", 0.766, "frozen_fm"),
-    ("BIOT (frozen)", 0.780, "frozen_fm"),
-    ("random-encoder floor", 0.790, "floor"),
-    ("Ours — SIGReg (frozen)", 0.819, "ours"),
+    ("CBraMod  [FM-Bench]", 0.5473, 0.0124, "frozen_fm"),
+    ("LaBraM  [FM-Bench]", 0.6040, 0.0464, "frozen_fm"),
+    ("BENDR  [FM-Bench]", 0.6659, 0.0246, "frozen_fm"),
+    ("Riemannian 0-param (ours)", 0.7610, None, "floor"),
+    ("EEGPT  [FM-Bench]", 0.7664, 0.0104, "frozen_fm"),
+    ("BIOT  [FM-Bench]", 0.7798, 0.0075, "frozen_fm"),
+    ("random-encoder floor (ours)", 0.7900, None, "floor"),
+    ("Ours — SIGReg in-domain", 0.8190, 0.0120, "ours"),
 ]
 FT_BAND = (0.814, 0.829)  # fine-tuned FMs — easier setting, NOT a frozen probe
 
 bars = sorted(BARS, key=lambda b: b[1])
 labels = [b[0] for b in bars]
 vals = [b[1] for b in bars]
+errs = [b[2] if b[2] else 0.0 for b in bars]
 cmap = {"ours": "#2f80ed", "frozen_fm": "#9aa5b1", "floor": "#cfd6df"}
-colors = [cmap[b[2]] for b in bars]
+colors = [cmap[b[3]] for b in bars]
 
-fig, ax = plt.subplots(figsize=(8.6, 4.6))
+fig, ax = plt.subplots(figsize=(9.2, 4.9))
 ax.axvspan(*FT_BAND, color="green", alpha=0.10,
-           label="fine-tuned FMs (easier setting — NOT frozen, not apples-to-apples)")
-ax.barh(labels, vals, color=colors)
+           label="fine-tuned FMs (easier setting — NOT frozen)")
+ax.barh(labels, vals, xerr=errs, color=colors, capsize=3, error_kw=dict(alpha=0.45))
 for i, v in enumerate(vals):
-    ax.text(v + 0.004, i, f"{v:.3f}", va="center", fontsize=9)
+    ax.text(v + errs[i] + 0.004, i, f"{v:.3f}", va="center", fontsize=9)
 ax.set_xlim(0.5, 0.88)
-ax.set_xlabel("Balanced accuracy — FROZEN linear probe (TUAB, held-out patients)")
-ax.set_title("Frozen head-to-head: FMs collapse frozen (EEG-FM-Bench regime); our JEPA holds ~0.82")
+ax.set_xlabel("Balanced accuracy — FROZEN linear probe, TUAB (held-out patients)")
+ax.set_title("Frozen head-to-head on TUAB — FM rows: EEG-FM-Bench (arXiv 2508.17742, Table 1)")
 ax.legend(fontsize=8, loc="lower right")
 ax.grid(axis="x", alpha=0.25)
 fig.tight_layout()
