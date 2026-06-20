@@ -98,4 +98,4 @@ the full split** with the probe head stated, disclose the **~0.79 random-encoder
 never compare against reduced-subset accuracy. Full references in `presentation/main.tex`;
 positioning in `docs/positioning.md`.
 
-**Team Hello Worlds** — Florent Tariolle · Clément Genninasca · Yoann Frayce · Hippolyte du Pac de Marsoulies.
+**Team Hello Worlds** — [Florent Tariolle](https://tariolle.github.io/) · [Clément Genninasca](https://github.com/Clems06) · [Yoann Frayce](https://github.com/Seveyus) · [Hippolyte du Pac de Marsoulies](https://github.com/hdupac).
