@@ -57,8 +57,30 @@ class Projector(nn.Module):
 # 1) ENCODER
 # --------------------------------------------------------------------------- #
 def build_encoder(cfg):
-    """1D EEG encoder mapping [B, C=19, T] -> [B, D]. See encoder.py."""
+    """1D EEG encoder mapping [B, C=19, T] -> [B, D].
+
+    Dispatches on ``cfg.encoder.type`` (default ``conv1d`` -> EEGEncoder1D, see
+    encoder.py). ``fourier`` -> FourierEEGEncoder1D, an STFT spectral-stem encoder
+    with the same represent/feature_map/cov_features contract (see
+    fourier_encoder.py). The default keeps existing configs/checkpoints (which have
+    no ``type`` field) on the conv path, so eval/benchmark rebuild them unchanged.
+    """
     e = cfg.encoder
+    etype = e.get("type", "conv1d")
+    if etype == "fourier":
+        from examples.eeg.fourier_encoder import FourierEEGEncoder1D
+        return FourierEEGEncoder1D(
+            n_channels=cfg.get("n_channels", 19),
+            n_fft=e.get("n_fft", 128),
+            hop=e.get("hop", 32),
+            d_model=e.d_model,
+            d_cov=e.d_cov,
+            d_hidden=e.get("d_hidden", 256),
+            n_temporal_layers=e.get("n_temporal_layers", 2),
+            kernel=e.get("kernel", 3),
+        )
+    if etype != "conv1d":
+        raise ValueError(f"unknown encoder.type: {etype!r} (expected 'conv1d' or 'fourier')")
     return EEGEncoder1D(
         n_channels=cfg.get("n_channels", 19),
         widths=tuple(e.widths),
