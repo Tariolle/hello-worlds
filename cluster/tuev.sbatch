@@ -1,6 +1,7 @@
 #!/bin/bash
 # TUEV cross-TASK frozen probe (P2 bonus): frozen TUAB SIGReg encoder -> 6-class
-# event probe on TUEV (held-out patients). Cross-task, same-site (TUH montage).
+# event probe on TUEV (held-out patients), plus the classical Riemannian event
+# covariance baseline on the same windows. Cross-task, same-site (TUH montage).
 #   CKPT=<.../latest.pth.tar> sbatch --export=ALL,CKPT cluster/tuev.sbatch
 #SBATCH --partition=defq
 #SBATCH --reservation=Vivatech
@@ -22,5 +23,10 @@ TUEV="${TUEV:-/lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV-PREPROCES
 echo "=== TUEV cross-task frozen probe ==="
 echo "ckpt=$CKPT"
 echo "tuev=$TUEV"
-python -u -m examples.eeg.tuev_probe --ckpt "$CKPT" --tuev-root "$TUEV" --floor --per-class-cap 1500
+python -u -m examples.eeg.tuev_probe \
+  --ckpt "$CKPT" \
+  --tuev-root "$TUEV" \
+  --floor \
+  --riemann \
+  --per-class-cap 1500
 echo "TUEV_DONE"

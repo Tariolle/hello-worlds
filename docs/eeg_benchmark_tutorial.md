@@ -73,6 +73,17 @@ python -m examples.eeg.benchmark \
   --data-root /path/to/TUAB_PREPROCESSED
 ```
 
+For an imported diagnosis dataset with class folders, pass the same label
+options used by `examples.eeg.eval`:
+
+```bash
+python -m examples.eeg.benchmark \
+  --run-riemann \
+  --data-root /path/to/MY_DIAGNOSIS_DATASET \
+  --label-scheme folders \
+  --classes normal,seizure,dementia
+```
+
 4. Run the random encoder floor:
 
 ```bash
@@ -91,6 +102,26 @@ python -m examples.eeg.benchmark \
 
 Add more `--checkpoint METHOD_ID=PATH` arguments to evaluate multiple trained
 cells in one command.
+
+The cross-task TUEV dataset is event-labelled rather than recording-labelled, so
+run its dedicated probe instead of the TUAB benchmark harness:
+
+```bash
+python -m examples.eeg.tuev_probe \
+  --riemann-only \
+  --tuev-root /path/to/TUEV_PREPROCESSED
+```
+
+To compare the frozen encoder and the classical Riemannian event covariance
+baseline on the exact same sampled event windows:
+
+```bash
+python -m examples.eeg.tuev_probe \
+  --ckpt checkpoints/eeg_ambient_sigreg/latest.pth.tar \
+  --tuev-root /path/to/TUEV_PREPROCESSED \
+  --floor \
+  --riemann
+```
 
 ## JEPA Cells To Populate
 

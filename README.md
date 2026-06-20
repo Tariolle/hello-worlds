@@ -25,7 +25,7 @@ Reference arms: `vicreg/ambient` (eb_jepa default), plus the 0-param classical
 ```bash
 uv venv && uv pip install -e .        # install torch matching cluster CUDA (see pyproject)
 # 0) sanity-check data + get the complexity yardstick (no GPU):
-python -m examples.eeg.baseline_riemann --data_root <TUAB_PREPROCESSED>
+python -m examples.eeg.baseline_riemann --data-root <TUAB_PREPROCESSED>
 # 1) pretrain (edit cfgs/train.yaml: data.data_root, model.ssl.reg_*):
 python -m examples.eeg.main  --fname examples/eeg/cfgs/train.yaml
 # 2) frozen probe (held-out patients), with random-encoder floor:
@@ -74,6 +74,16 @@ python -m examples.eeg.eval \
   --classes normal,seizure,dementia
 ```
 
+The classical Riemannian covariance baseline supports the same folder-labelled
+layout:
+
+```bash
+python -m examples.eeg.baseline_riemann \
+  --data-root MY_DIAGNOSIS_DATASET \
+  --label-scheme folders \
+  --classes normal,seizure,dementia
+```
+
 The evaluator reports accuracy, balanced accuracy, macro-F1, one-vs-rest AUROC
 when defined, per-class recall, and the confusion matrix.
 
@@ -84,6 +94,15 @@ leaked and not comparable — keep every subject's recordings on one side only.
 Classes are resolved from the `train/` folders (or `--classes`) and reused for
 `eval/`: a diagnosis present only under `eval/` is silently ignored, so check the
 `[eeg-eval] classes` line the evaluator prints.
+
+For TUEV, use the event-level probe because the dataset is not recording-labelled
+like TUAB:
+
+```bash
+python -m examples.eeg.tuev_probe \
+  --riemann-only \
+  --tuev-root <TUEV_PREPROCESSED>
+```
 
 ## Honesty rules (read before talking to the jury)
 - Report **balanced accuracy on the full split**, and state the probe head.

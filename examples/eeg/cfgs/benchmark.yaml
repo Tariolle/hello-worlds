@@ -80,8 +80,8 @@ local_methods:
     family: "Classical baseline"
     status: runnable_local
     comparable_to_local_jepa: true
-    command: "python -m examples.eeg.baseline_riemann --data_root <TUAB_PREPROCESSED>"
-    notes: "0-parameter complexity yardstick; run before GPU experiments to sanity-check EDF loading."
+    command: "python -m examples.eeg.baseline_riemann --data-root <TUAB_PREPROCESSED>"
+    notes: "0-parameter complexity yardstick; supports TUAB and folder-labelled diagnosis datasets."
 
   - id: random_encoder_floor
     display_name: "Random EEGEncoder1D floor"

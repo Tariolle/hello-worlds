@@ -17,4 +17,4 @@ export XDG_CACHE_HOME=$WORK/.cache
 source "$WORK/venvs/hw_aarch64/bin/activate"
 cd "$WORK/hello-worlds"
 python -u -m examples.eeg.baseline_riemann \
-  --data_root /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED
+  --data-root /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED

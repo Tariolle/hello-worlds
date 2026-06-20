@@ -20,7 +20,12 @@ weighted-F1, macro-F1, Cohen's kappa.
 
 Run (GPU node):
   python -m examples.eeg.tuev_probe --ckpt <.../latest.pth.tar> \
-      --tuev-root <.../TUEV_PREPROCESSED> [--floor] [--per-class-cap 1500]
+      --tuev-root <.../TUEV_PREPROCESSED> [--floor] [--riemann] \
+      [--per-class-cap 1500]
+
+Classical Riemannian event baseline only:
+  python -m examples.eeg.tuev_probe --riemann-only \
+      --tuev-root <.../TUEV_PREPROCESSED>
 """
 import argparse
 import glob
@@ -145,6 +150,58 @@ def extract(encoder, items, device):
     return np.asarray(X, dtype=np.float32), np.asarray(y)
 
 
+def extract_covariances(items, estimator_name="oas"):
+    """Event windows -> [N, C, C] covariance matrices + labels.
+
+    This mirrors ``extract`` but skips the neural encoder. It keeps the same TUEV
+    event definition, class balancing cap, and readable-window filtering.
+    """
+    from pyriemann.estimation import Covariances
+
+    est = Covariances(estimator=estimator_name)
+    by_path = defaultdict(list)
+    for path, start, lab in items:
+        by_path[path].append((start, lab))
+    covs, y, buf, blab = [], [], [], []
+
+    def flush():
+        if not buf:
+            return
+        C = est.transform(np.stack(buf).astype(np.float64))
+        C = 0.5 * (C + C.transpose(0, 2, 1))
+        covs.extend(list(C))
+        y.extend(blab)
+        buf.clear()
+        blab.clear()
+
+    for path, lst in by_path.items():
+        try:
+            f = pyedflib.EdfReader(path)
+        except Exception:
+            continue
+        try:
+            if f.signals_in_file < N_CH:
+                continue
+            nsamp = int(min(f.getNSamples()[:N_CH]))
+            for start, lab in lst:
+                if start < 0 or start + WIN > nsamp:
+                    continue
+                x = np.empty((N_CH, WIN), dtype=np.float32)
+                try:
+                    for c in range(N_CH):
+                        x[c] = f.readSignal(c, start, WIN)
+                except Exception:
+                    continue
+                buf.append(_zscore(x, axis=1))
+                blab.append(lab)
+                if len(buf) >= 256:
+                    flush()
+        finally:
+            f._close()
+    flush()
+    return np.asarray(covs, dtype=np.float64), np.asarray(y)
+
+
 def run_probe(Xtr, ytr, Xev, yev, tag):
     from sklearn.preprocessing import StandardScaler
     from sklearn.linear_model import LogisticRegression
@@ -168,6 +225,24 @@ def run_probe(Xtr, ytr, Xev, yev, tag):
     return res
 
 
+def run_riemann_probe(Ctr, ytr, Cev, yev, tag):
+    from examples.eeg.baseline_riemann import fit_score_riemann
+
+    res = fit_score_riemann(Ctr, ytr, Cev, yev, CLASSES)
+    keep = {
+        "balanced_acc": res["balanced_acc"],
+        "macro_f1": res["f1"],
+        "auroc": res["auroc"],
+        "acc": res["acc"],
+        "n_train": res["n_train"],
+        "n_eval": res["n_eval"],
+    }
+    print(f"[tuev] {tag}: {keep}", flush=True)
+    print(f"[tuev] {tag} confusion (rows=true {CLASSES}):\n"
+          f"{np.asarray(res['confusion_matrix'])}", flush=True)
+    return res
+
+
 def _counts(y):
     c = np.bincount(y, minlength=6)
     return ", ".join(f"{CLASSES[i]}={int(c[i])}" for i in range(6))
@@ -175,28 +250,52 @@ def _counts(y):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--ckpt", required=True)
+    ap.add_argument("--ckpt",
+                    help="frozen encoder checkpoint; optional with --riemann-only")
     ap.add_argument("--tuev-root", required=True)
     ap.add_argument("--per-class-cap", type=int, default=1500,
                     help="max windows per class per split (0 = no cap)")
     ap.add_argument("--floor", action="store_true",
                     help="also probe a random (untrained) encoder of the same architecture")
+    ap.add_argument("--riemann", action="store_true",
+                    help="also run the classical Riemannian covariance event probe")
+    ap.add_argument("--riemann-only", action="store_true",
+                    help="run only the classical Riemannian covariance event probe")
+    ap.add_argument("--cov-estimator", default="oas",
+                    help="pyRiemann covariance estimator for --riemann, e.g. oas/lwf/scm")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
 
     if pyedflib is None:
         sys.exit("pyedflib is required (pip install pyedflib)")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    state = torch.load(a.ckpt, map_location=device, weights_only=False)
-    cfg = OmegaConf.create(state["cfg"])
-    enc = build_encoder(cfg.model).to(device)
-    enc.load_state_dict(state["encoder"]); enc.eval()
 
     rng = np.random.default_rng(a.seed)
     tr = build_split(a.tuev_root, "train", a.per_class_cap, rng)
     ev = build_split(a.tuev_root, "eval", a.per_class_cap, rng)
     print(f"[tuev] candidate windows: train={len(tr)} eval={len(ev)}", flush=True)
+
+    if a.riemann or a.riemann_only:
+        Ctr, cytr = extract_covariances(tr, a.cov_estimator)
+        Cev, cyev = extract_covariances(ev, a.cov_estimator)
+        print(f"[tuev] covariances: Ctr={Ctr.shape} Cev={Cev.shape}", flush=True)
+        print(f"[tuev] riemann train dist: {_counts(cytr)}", flush=True)
+        print(f"[tuev] riemann eval  dist: {_counts(cyev)}", flush=True)
+        if len(Ctr) == 0 or len(Cev) == 0:
+            sys.exit("[tuev] no readable covariance windows -- check tuev-root / channel count")
+        run_riemann_probe(Ctr, cytr, Cev, cyev, "RIEMANN covariance+LR")
+
+    if a.riemann_only:
+        print("TUEV_DONE", flush=True)
+        return
+
+    if not a.ckpt:
+        ap.error("--ckpt is required unless --riemann-only is set")
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    state = torch.load(a.ckpt, map_location=device, weights_only=False)
+    cfg = OmegaConf.create(state["cfg"])
+    enc = build_encoder(cfg.model).to(device)
+    enc.load_state_dict(state["encoder"]); enc.eval()
 
     Xtr, ytr = extract(enc, tr, device)
     Xev, yev = extract(enc, ev, device)

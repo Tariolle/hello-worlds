@@ -50,6 +50,10 @@ class RunRequest:
     run_random_floor: bool
     checkpoint_overrides: dict[str, str]
     data_root: str | None
+    label_scheme: str | None
+    class_names: list[str] | None
+    train_split: str
+    eval_split: str
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -107,15 +111,15 @@ def _local_rows(cfg: dict[str, Any], requests: RunRequest) -> list[dict[str, Any
     by_id = {row["id"]: row for row in rows}
 
     if requests.run_riemann:
-        by_id["riemann_tangent_logreg"].update(_run_riemann(requests.data_root))
+        by_id["riemann_tangent_logreg"].update(_run_riemann(requests))
 
     if requests.run_random_floor:
-        by_id["random_encoder_floor"].update(_run_random_floor(cfg, requests.data_root))
+        by_id["random_encoder_floor"].update(_run_random_floor(cfg, requests))
 
     for method_id, ckpt in requests.checkpoint_overrides.items():
         if method_id not in by_id:
             raise KeyError(f"Unknown local method id for checkpoint override: {method_id}")
-        by_id[method_id].update(_run_checkpoint(cfg, ckpt, requests.data_root))
+        by_id[method_id].update(_run_checkpoint(cfg, ckpt, requests))
 
     return rows
 
@@ -125,35 +129,35 @@ def _published_rows(cfg: dict[str, Any]) -> list[dict[str, Any]]:
     return [_row_from_method(method, dataset) for method in cfg.get("published_references", [])]
 
 
-def _run_riemann(data_root: str | None) -> dict[str, Any]:
-    from pyriemann.tangentspace import TangentSpace
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score
-    from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import StandardScaler
+def _run_riemann(requests: RunRequest) -> dict[str, Any]:
+    from examples.eeg.baseline_riemann import run_recording_riemann
 
-    from examples.eeg.baseline_riemann import _recording_covariances
-
-    c_train, y_train = _recording_covariances("train", data_root)
-    c_eval, y_eval = _recording_covariances("eval", data_root)
-    clf = make_pipeline(
-        TangentSpace(metric="riemann"),
-        StandardScaler(),
-        LogisticRegression(max_iter=2000, class_weight="balanced"),
+    metrics = run_recording_riemann(
+        data_root=requests.data_root,
+        label_scheme=requests.label_scheme or "tuab",
+        class_names=requests.class_names,
+        train_split=requests.train_split,
+        eval_split=requests.eval_split,
     )
-    clf.fit(c_train, y_train)
-    pred = clf.predict(c_eval)
-    score = clf.predict_proba(c_eval)[:, 1]
     return {
         "status": "measured_local",
-        "acc": round(float(accuracy_score(y_eval, pred)), 4),
-        "balanced_acc": round(float(balanced_accuracy_score(y_eval, pred)), 4),
-        "auroc": round(float(roc_auc_score(y_eval, score)), 4),
         "metric_source": "local_run",
+        **metrics,
     }
 
 
-def _run_random_floor(cfg: dict[str, Any], data_root: str | None) -> dict[str, Any]:
+def _apply_dataset_overrides(data_cfg: dict[str, Any], requests: RunRequest) -> dict[str, Any]:
+    data_cfg = dict(data_cfg)
+    if requests.data_root:
+        data_cfg["data_root"] = requests.data_root
+    if requests.label_scheme:
+        data_cfg["label_scheme"] = requests.label_scheme
+    if requests.class_names:
+        data_cfg["class_names"] = requests.class_names
+    return data_cfg
+
+
+def _run_random_floor(cfg: dict[str, Any], requests: RunRequest) -> dict[str, Any]:
     import numpy as np
     import torch
     from omegaconf import OmegaConf
@@ -163,16 +167,17 @@ def _run_random_floor(cfg: dict[str, Any], data_root: str | None) -> dict[str, A
 
     train_cfg = OmegaConf.load("examples/eeg/cfgs/train.yaml")
     data_cfg = OmegaConf.to_container(train_cfg.data, resolve=True)
-    if data_root:
-        data_cfg["data_root"] = data_root
+    data_cfg = _apply_dataset_overrides(data_cfg, requests)
     seed = int(train_cfg.meta.seed)
     torch.manual_seed(seed)
     np.random.seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     encoder = build_encoder(train_cfg.model).to(device).eval()
-    x_train, y_train = extract_features(encoder, "train", device, data_cfg)
-    x_eval, y_eval = extract_features(encoder, "eval", device, data_cfg)
-    metrics = probe(x_train, y_train, x_eval, y_eval)
+    x_train, y_train, label_names = extract_features(
+        encoder, requests.train_split, device, data_cfg, return_label_names=True)
+    data_cfg["class_names"] = label_names
+    x_eval, y_eval = extract_features(encoder, requests.eval_split, device, data_cfg)
+    metrics = probe(x_train, y_train, x_eval, y_eval, label_names)
     return {
         "status": "measured_local",
         "metric_source": "local_run",
@@ -180,7 +185,7 @@ def _run_random_floor(cfg: dict[str, Any], data_root: str | None) -> dict[str, A
     }
 
 
-def _run_checkpoint(cfg: dict[str, Any], checkpoint: str, data_root: str | None) -> dict[str, Any]:
+def _run_checkpoint(cfg: dict[str, Any], checkpoint: str, requests: RunRequest) -> dict[str, Any]:
     import torch
     from omegaconf import OmegaConf
 
@@ -194,14 +199,15 @@ def _run_checkpoint(cfg: dict[str, Any], checkpoint: str, data_root: str | None)
     state = torch.load(ckpt_path, map_location=device, weights_only=False)
     train_cfg = OmegaConf.create(state["cfg"])
     data_cfg = OmegaConf.to_container(train_cfg.data, resolve=True)
-    if data_root:
-        data_cfg["data_root"] = data_root
+    data_cfg = _apply_dataset_overrides(data_cfg, requests)
     encoder = build_encoder(train_cfg.model).to(device)
     encoder.load_state_dict(state["encoder"])
     encoder.eval()
-    x_train, y_train = extract_features(encoder, "train", device, data_cfg)
-    x_eval, y_eval = extract_features(encoder, "eval", device, data_cfg)
-    metrics = probe(x_train, y_train, x_eval, y_eval)
+    x_train, y_train, label_names = extract_features(
+        encoder, requests.train_split, device, data_cfg, return_label_names=True)
+    data_cfg["class_names"] = label_names
+    x_eval, y_eval = extract_features(encoder, requests.eval_split, device, data_cfg)
+    metrics = probe(x_train, y_train, x_eval, y_eval, label_names)
     return {
         "status": "measured_local",
         "checkpoint": str(ckpt_path),
@@ -385,11 +391,22 @@ def _parse_checkpoint_overrides(items: list[str]) -> dict[str, str]:
     return overrides
 
 
+def _parse_classes(raw: str | None) -> list[str] | None:
+    if not raw:
+        return None
+    return [name.strip() for name in raw.split(",") if name.strip()]
+
+
 def build_argparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="examples/eeg/cfgs/benchmark.yaml")
     parser.add_argument("--output-dir", default=None)
     parser.add_argument("--data-root", default=None)
+    parser.add_argument("--label-scheme", choices=["tuab", "folders"], default=None)
+    parser.add_argument("--classes",
+                        help="comma-separated class folder names/order for folder-labelled data")
+    parser.add_argument("--train-split", default="train")
+    parser.add_argument("--eval-split", default="eval")
     parser.add_argument("--run-riemann", action="store_true", help="Run the CPU Riemannian baseline.")
     parser.add_argument("--run-random-floor", action="store_true", help="Evaluate the untrained encoder floor.")
     parser.add_argument(
@@ -412,6 +429,10 @@ def main(argv: list[str] | None = None) -> None:
         run_random_floor=args.run_random_floor,
         checkpoint_overrides=_parse_checkpoint_overrides(args.checkpoint),
         data_root=args.data_root,
+        label_scheme=args.label_scheme,
+        class_names=_parse_classes(args.classes),
+        train_split=args.train_split,
+        eval_split=args.eval_split,
     )
     rows = _local_rows(cfg, requests) + _published_rows(cfg)
     ranked = _rank_rows(rows, cfg["meta"]["primary_metric"])
