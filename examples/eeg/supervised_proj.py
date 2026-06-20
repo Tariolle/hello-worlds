@@ -89,7 +89,10 @@ def main():
         sil_un = silhouette_score(Xev, yev)
         emb_un = TSNE(n_components=2, perplexity=30, init="pca", random_state=0).fit_transform(Xev)
 
-        lda = LDA(n_components=min(K - 1, Xtr.shape[1])).fit(Xtr, ytr)
+        # shrinkage-regularized LDA (eigen solver supports transform + Ledoit-Wolf shrinkage)
+        # -- plain svd-LDA overfits the 528-dim tangent and does not generalize to eval.
+        lda = LDA(solver="eigen", shrinkage="auto",
+                  n_components=min(K - 1, Xtr.shape[1])).fit(Xtr, ytr)
         Lev = lda.transform(Xev)
         ba = balanced_accuracy_score(yev, lda.predict(Xev))
         sil_sup = silhouette_score(Lev, yev)
