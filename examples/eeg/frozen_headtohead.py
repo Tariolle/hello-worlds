@@ -3,8 +3,10 @@
 All bars are FROZEN linear-probe balanced accuracy (encoder frozen, only a linear
 head is fit). Foundation-model numbers are quoted VERBATIM from EEG-FM-Bench
 (Cui et al., arXiv 2508.17742, Table 1, frozen strategy) — we cite, we did not
-re-measure. Our SIGReg bar is IN-DOMAIN (pretrained on TUAB-train); the
-apples-to-apples general-pretrain bar (TUSZ -> frozen TUAB) is added once it lands.
+re-measure. Two "ours" bars: IN-DOMAIN (pretrained on TUAB-train) and the
+apples-to-apples GENERAL-PRETRAIN (TUSZ, ex-TUAB-eval patients -> frozen TUAB) — both
+frozen, both above every FM frozen, and nearly equal (0.819 vs 0.814) -> the
+in-domain advantage was NOT the driver.
 The fine-tuned FM band is a different, easier setting — shaded for context only.
 
 Run (local, no GPU):  python examples/eeg/frozen_headtohead.py
@@ -24,7 +26,8 @@ BARS = [
     ("EEGPT  [FM-Bench]", 0.7664, 0.0104, "frozen_fm"),
     ("BIOT  [FM-Bench]", 0.7798, 0.0075, "frozen_fm"),
     ("random-encoder floor (ours)", 0.7900, None, "floor"),
-    ("Ours — SIGReg in-domain", 0.8190, 0.0120, "ours"),
+    ("Ours — SIGReg general-pretrain (TUSZ→TUAB)", 0.8143, None, "ours_gen"),
+    ("Ours — SIGReg in-domain (TUAB→TUAB)", 0.8190, 0.0120, "ours"),
 ]
 FT_BAND = (0.814, 0.829)  # fine-tuned FMs — easier setting, NOT a frozen probe
 
@@ -32,7 +35,7 @@ bars = sorted(BARS, key=lambda b: b[1])
 labels = [b[0] for b in bars]
 vals = [b[1] for b in bars]
 errs = [b[2] if b[2] else 0.0 for b in bars]
-cmap = {"ours": "#2f80ed", "frozen_fm": "#9aa5b1", "floor": "#cfd6df"}
+cmap = {"ours": "#2f80ed", "ours_gen": "#27ae60", "frozen_fm": "#9aa5b1", "floor": "#cfd6df"}
 colors = [cmap[b[3]] for b in bars]
 
 fig, ax = plt.subplots(figsize=(9.2, 4.9))
