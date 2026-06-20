@@ -20,7 +20,7 @@ BARS = [
     ("CBraMod  [FM-Bench]", 0.5473, 0.0124, "frozen_fm"),
     ("LaBraM  [FM-Bench]", 0.6040, 0.0464, "frozen_fm"),
     ("BENDR  [FM-Bench]", 0.6659, 0.0246, "frozen_fm"),
-    ("Riemannian no-deep-net (ours)", 0.7610, None, "floor"),
+    ("Riemannian 0-param (ours)", 0.7610, None, "floor"),
     ("EEGPT  [FM-Bench]", 0.7664, 0.0104, "frozen_fm"),
     ("BIOT  [FM-Bench]", 0.7798, 0.0075, "frozen_fm"),
     ("random-encoder floor (ours)", 0.7900, None, "floor"),

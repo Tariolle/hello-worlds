@@ -28,8 +28,7 @@ targets, but it marks them as `reference only`.
 - `examples/eeg/benchmark.py`: renderer and optional local evaluation harness.
 - `results/benchmark/`: generated CSV, JSON, Markdown, HTML, and plot outputs.
 - `examples/eeg/eval.py`: single-checkpoint frozen-probe evaluator.
-- `examples/eeg/baseline_riemann.py`: CPU classical Riemannian EEG baseline
-  (MDM or tangent-space logistic regression).
+- `examples/eeg/baseline_riemann.py`: CPU classical Riemannian baseline.
 
 ## Safe First Command
 
@@ -71,9 +70,7 @@ python -m examples.eeg.benchmark
 ```bash
 python -m examples.eeg.benchmark \
   --run-riemann \
-  --data-root /path/to/TUAB_PREPROCESSED \
-  --riemann-classifier tangent-logreg \
-  --riemann-aggregation riemann
+  --data-root /path/to/TUAB_PREPROCESSED
 ```
 
 For an imported diagnosis dataset with class folders, pass the same label
@@ -84,8 +81,7 @@ python -m examples.eeg.benchmark \
   --run-riemann \
   --data-root /path/to/MY_DIAGNOSIS_DATASET \
   --label-scheme folders \
-  --classes normal,seizure,dementia \
-  --riemann-classifier mdm
+  --classes normal,seizure,dementia
 ```
 
 4. Run the random encoder floor:
@@ -113,8 +109,7 @@ run its dedicated probe instead of the TUAB benchmark harness:
 ```bash
 python -m examples.eeg.tuev_probe \
   --riemann-only \
-  --tuev-root /path/to/TUEV_PREPROCESSED \
-  --riemann-classifier mdm
+  --tuev-root /path/to/TUEV_PREPROCESSED
 ```
 
 To compare the frozen encoder and the classical Riemannian event covariance
@@ -191,8 +186,7 @@ python -m examples.eeg.benchmark
 5. Only run local data commands when a TUAB path is provided or already known:
 
 ```bash
-python -m examples.eeg.benchmark --run-riemann --data-root <TUAB_PREPROCESSED> \
-  --riemann-classifier tangent-logreg --riemann-aggregation riemann
+python -m examples.eeg.benchmark --run-riemann --data-root <TUAB_PREPROCESSED>
 python -m examples.eeg.benchmark --run-random-floor --data-root <TUAB_PREPROCESSED>
 ```
 

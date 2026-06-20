@@ -54,12 +54,6 @@ class RunRequest:
     class_names: list[str] | None
     train_split: str
     eval_split: str
-    riemann_classifier: str
-    riemann_aggregation: str
-    riemann_mean_metric: str
-    riemann_distance_metric: str
-    riemann_tangent_metric: str
-    riemann_cov_estimator: str
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -144,12 +138,6 @@ def _run_riemann(requests: RunRequest) -> dict[str, Any]:
         class_names=requests.class_names,
         train_split=requests.train_split,
         eval_split=requests.eval_split,
-        estimator=requests.riemann_cov_estimator,
-        aggregation=requests.riemann_aggregation,
-        classifier=requests.riemann_classifier,
-        mean_metric=requests.riemann_mean_metric,
-        distance_metric=requests.riemann_distance_metric,
-        tangent_metric=requests.riemann_tangent_metric,
     )
     return {
         "status": "measured_local",
@@ -420,18 +408,6 @@ def build_argparser() -> argparse.ArgumentParser:
     parser.add_argument("--train-split", default="train")
     parser.add_argument("--eval-split", default="eval")
     parser.add_argument("--run-riemann", action="store_true", help="Run the CPU Riemannian baseline.")
-    parser.add_argument("--riemann-classifier", default="tangent-logreg",
-                        choices=["tangent-logreg", "mdm"])
-    parser.add_argument("--riemann-aggregation", default="riemann",
-                        choices=["riemann", "logeuclid", "euclid"])
-    parser.add_argument("--riemann-mean-metric", default="riemann",
-                        choices=["riemann", "logeuclid", "euclid"])
-    parser.add_argument("--riemann-distance-metric", default="riemann",
-                        choices=["riemann", "logeuclid", "euclid"])
-    parser.add_argument("--riemann-tangent-metric", default="riemann",
-                        choices=["riemann", "logeuclid", "euclid"])
-    parser.add_argument("--riemann-cov-estimator", default="oas",
-                        help="covariance estimator for --run-riemann")
     parser.add_argument("--run-random-floor", action="store_true", help="Evaluate the untrained encoder floor.")
     parser.add_argument(
         "--checkpoint",
@@ -457,12 +433,6 @@ def main(argv: list[str] | None = None) -> None:
         class_names=_parse_classes(args.classes),
         train_split=args.train_split,
         eval_split=args.eval_split,
-        riemann_classifier=args.riemann_classifier,
-        riemann_aggregation=args.riemann_aggregation,
-        riemann_mean_metric=args.riemann_mean_metric,
-        riemann_distance_metric=args.riemann_distance_metric,
-        riemann_tangent_metric=args.riemann_tangent_metric,
-        riemann_cov_estimator=args.riemann_cov_estimator,
     )
     rows = _local_rows(cfg, requests) + _published_rows(cfg)
     ranked = _rank_rows(rows, cfg["meta"]["primary_metric"])

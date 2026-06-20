@@ -156,8 +156,9 @@ def extract_covariances(items, estimator_name="oas"):
     This mirrors ``extract`` but skips the neural encoder. It keeps the same TUEV
     event definition, class balancing cap, and readable-window filtering.
     """
-    from examples.eeg.riemannian import estimate_covariances
+    from pyriemann.estimation import Covariances
 
+    est = Covariances(estimator=estimator_name)
     by_path = defaultdict(list)
     for path, start, lab in items:
         by_path[path].append((start, lab))
@@ -166,7 +167,7 @@ def extract_covariances(items, estimator_name="oas"):
     def flush():
         if not buf:
             return
-        C = estimate_covariances(np.stack(buf), estimator=estimator_name)
+        C = est.transform(np.stack(buf).astype(np.float64))
         C = 0.5 * (C + C.transpose(0, 2, 1))
         covs.extend(list(C))
         y.extend(blab)
@@ -224,30 +225,10 @@ def run_probe(Xtr, ytr, Xev, yev, tag):
     return res
 
 
-def run_riemann_probe(
-    Ctr,
-    ytr,
-    Cev,
-    yev,
-    tag,
-    classifier="tangent-logreg",
-    mean_metric="riemann",
-    distance_metric="riemann",
-    tangent_metric="riemann",
-):
+def run_riemann_probe(Ctr, ytr, Cev, yev, tag):
     from examples.eeg.baseline_riemann import fit_score_riemann
 
-    res = fit_score_riemann(
-        Ctr,
-        ytr,
-        Cev,
-        yev,
-        CLASSES,
-        classifier=classifier,
-        mean_metric=mean_metric,
-        distance_metric=distance_metric,
-        tangent_metric=tangent_metric,
-    )
+    res = fit_score_riemann(Ctr, ytr, Cev, yev, CLASSES)
     keep = {
         "balanced_acc": res["balanced_acc"],
         "macro_f1": res["f1"],
@@ -281,18 +262,7 @@ def main():
     ap.add_argument("--riemann-only", action="store_true",
                     help="run only the classical Riemannian covariance event probe")
     ap.add_argument("--cov-estimator", default="oas",
-                    help="covariance estimator for --riemann, e.g. oas/lwf/scm")
-    ap.add_argument("--riemann-classifier", default="tangent-logreg",
-                    choices=["tangent-logreg", "mdm"],
-                    help="Riemannian event classifier for --riemann/--riemann-only")
-    ap.add_argument("--riemann-mean-metric", default="riemann",
-                    choices=["riemann", "logeuclid", "euclid"])
-    ap.add_argument("--riemann-distance-metric", default="riemann",
-                    choices=["riemann", "logeuclid", "euclid"],
-                    help="distance metric for --riemann-classifier mdm")
-    ap.add_argument("--riemann-tangent-metric", default="riemann",
-                    choices=["riemann", "logeuclid", "euclid"],
-                    help="tangent map metric for --riemann-classifier tangent-logreg")
+                    help="pyRiemann covariance estimator for --riemann, e.g. oas/lwf/scm")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
 
@@ -312,17 +282,7 @@ def main():
         print(f"[tuev] riemann eval  dist: {_counts(cyev)}", flush=True)
         if len(Ctr) == 0 or len(Cev) == 0:
             sys.exit("[tuev] no readable covariance windows -- check tuev-root / channel count")
-        run_riemann_probe(
-            Ctr,
-            cytr,
-            Cev,
-            cyev,
-            f"RIEMANN covariance+{a.riemann_classifier}",
-            classifier=a.riemann_classifier,
-            mean_metric=a.riemann_mean_metric,
-            distance_metric=a.riemann_distance_metric,
-            tangent_metric=a.riemann_tangent_metric,
-        )
+        run_riemann_probe(Ctr, cytr, Cev, cyev, "RIEMANN covariance+LR")
 
     if a.riemann_only:
         print("TUEV_DONE", flush=True)
