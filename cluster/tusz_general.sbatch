@@ -5,6 +5,13 @@
 # TUAB. This matches the foundation-models' regime (general pretrain -> frozen TUAB)
 # and removes our in-domain advantage, so "we hold / they collapse" becomes
 # apples-to-apples. (TUSZ is same-SITE general, not multi-site like the FMs.)
+#
+# PATIENT EXCLUSION IS LOAD-BEARING: the cfg's `data.file_list` MUST exclude every
+# TUAB-eval patient or the 0.814 number is a leak. Build it reproducibly (writes the
+# list + HARD-asserts disjointness, prints the dropped count) with:
+#   python -m tools.build_tusz_filelist --tusz-root <TUSZ> --tuab-root <TUAB> \
+#       --out $W/tusz_cfgs/tusz_ex_tuabeval.filelist
+# then set data.file_list to that path in the cfg below.
 #   CFG=<tusz cfg> sbatch --export=ALL,CFG cluster/tusz_general.sbatch
 #SBATCH --partition=defq
 #SBATCH --reservation=Vivatech
