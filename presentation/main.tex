@@ -13,7 +13,7 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning, fit, arrows.meta, calc, decorations.pathreplacing, backgrounds}
 
-\graphicspath{{./figures/}{../results/label_eff/}{../results/benchmark/}{../results/robustness/}{../results/calibration/}{../results/latent/}{../results/loss/}{../}}
+\graphicspath{{./figures/}{../results/label_eff/}{../results/benchmark/}{../results/robustness/}{../results/calibration/}{../results/latent/}{../results/loss/}{../results/riemann/}{../}}
 
 \definecolor{insared}{HTML}{E51F13}
 \definecolor{vcolor}{HTML}{2E86AB}   % encoder / our method (blue)
@@ -579,6 +579,7 @@
   \begin{itemize}
     \item Panchavati, S.\ et al.\ (2026). \href{https://arxiv.org/abs/2603.16281}{\textit{Laya: a LeJEPA approach to EEG via latent prediction over reconstruction}}. Preprint. \emph{(our ambient baseline)}
     \item de Surrel, T., Lotte, F., Chevallier, S.\ \& Yger, F.\ (2025). \href{https://arxiv.org/abs/2502.01512}{\textit{Wrapped Gaussian on the manifold of Symmetric Positive Definite Matrices}}. Preprint.
+    \item de Surrel, T.\ \textit{r\_tSNE\_in\_C} -- Riemannian t-SNE on SPD matrices (AIRM). \href{https://github.com/thibaultdesurrel/r_tSNE_in_C}{github.com/thibaultdesurrel/r\_tSNE\_in\_C}. \emph{(our manifold-aware latent viz)}
     \item Arbel, M., Terver, B.\ \& Ponce, J.\ (2026). \href{https://arxiv.org/abs/2605.17671}{\textit{PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment}}. Preprint.
     \item \href{https://arxiv.org/abs/2501.08139}{\textit{EEG-ReMinD: Riemannian SPD self-supervised EEG}} (2025). Preprint. \emph{(reconstruction, not JEPA)}
     \item LeCun, Y.\ (2022). \textit{A Path Towards Autonomous Machine Intelligence (JEPA)}. OpenReview.
@@ -685,6 +686,26 @@
   \vspace{-0.3em}
   \begin{center}\footnotesize
     t-SNE and UMAP of frozen \texttt{represent} features on the eval set -- same frozen ambient readout for all four. Silhouette (full-dim, the actual metric): SIGReg-ambient (ours) $0.051$ vs random-init $0.021$ ($\sim2\times$); SPD-tangent and PEIRA sit \emph{between} -- geometry does not beat ambient. All modest, consistent with the $\sim{+}0.04$ probe gain. (The 2-D maps are illustrative; the random-init floor has no fixed seed, so it varies $0.021$--$0.027$ run-to-run.)
+  \end{center}
+\end{frame}
+
+\begin{frame}{Appendix: manifold-aware latent geometry (AIRM vs Euclidean)}
+  \vspace{-0.2em}
+  \begin{center}
+    \includegraphics[width=\textwidth]{riemann_latent.png}
+  \end{center}
+  \vspace{-0.35em}
+  \begin{center}\footnotesize
+    The frozen SPD covariance latent embedded two ways: Euclidean (tangent) t-SNE vs
+    \textbf{AIRM Riemannian t-SNE} (de Surrel's \texttt{rtsne}) onto the hyperbolic Poincar\'e
+    disk. \textbf{AIRM $\ge$ Euclidean silhouette for \emph{every} encoder} (ours $0.052$ vs
+    $0.049$; SIGReg-tan $0.057$ vs $0.055$; random $0.032$) -- the latent genuinely lives on the
+    SPD manifold, so respecting its geometry (de Surrel's premise) reveals slightly more
+    structure than flattening. \textbf{SIGReg is load-bearing}: the trained cells separate
+    ${\sim}1.6\times$ better than random-init -- the anti-collapse objective is what makes the
+    latent geometrically meaningful, not the backbone. \emph{Honest scope:} the AIRM gain is
+    small and the linear-probe ranking is unchanged -- geometry sharpens the \emph{picture}, not
+    the accuracy. The negative stands; the latent geometry is real, clean, and visualizable.
   \end{center}
 \end{frame}
 
