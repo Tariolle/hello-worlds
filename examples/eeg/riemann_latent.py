@@ -116,6 +116,7 @@ def main():
         try:
             from pyriemann.utils.distance import pairwise_distance
             D = pairwise_distance(mats, metric="riemann")
+            np.fill_diagonal(D, 0.0)  # AIRM self-distance is ~1e-7, not exactly 0; silhouette needs exact 0
             sil_airm = silhouette_score(D, y, metric="precomputed")
         except Exception as e:  # noqa: BLE001
             print(f"[riem] {label}: AIRM silhouette failed: {e}", flush=True)
