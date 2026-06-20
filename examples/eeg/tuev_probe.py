@@ -11,8 +11,10 @@ one sample = one 10 s window (all 19 channels) centred on a distinct annotated
 event region, labelled by that event's class (1..6). The CSV annotates per channel
 and per 1 s, so the same event appears up to 22x (channels) and as many consecutive
 1 s rows; we collapse these to ~one window per (5 s bucket, class) per recording,
-then cap per class for balance/compute. Patient-disjoint by construction (official
-train/ vs eval/ folders).
+then cap the TRAIN split per class for balance/compute. The EVAL split is left
+UNCAPPED by default so the reported metric is measured on every readable eval
+event, not a random subset. Patient-disjoint by construction (official train/ vs
+eval/ folders).
 
 Reuses the frozen-probe recipe (StandardScaler + balanced LogisticRegression on
 mean-pooled encoder features). Metrics = TUEV-standard: balanced accuracy,
@@ -254,7 +256,11 @@ def main():
                     help="frozen encoder checkpoint; optional with --riemann-only")
     ap.add_argument("--tuev-root", required=True)
     ap.add_argument("--per-class-cap", type=int, default=1500,
-                    help="max windows per class per split (0 = no cap)")
+                    help="max TRAIN windows per class for balance/compute (0 = no cap)")
+    ap.add_argument("--eval-per-class-cap", type=int, default=0,
+                    help="max EVAL windows per class (0 = no cap, the default; eval should "
+                         "stay uncapped so the metric uses every readable eval event. "
+                         "Set 1500 to reproduce the pre-fix subsampled number.)")
     ap.add_argument("--floor", action="store_true",
                     help="also probe a random (untrained) encoder of the same architecture")
     ap.add_argument("--riemann", action="store_true",
@@ -271,7 +277,7 @@ def main():
 
     rng = np.random.default_rng(a.seed)
     tr = build_split(a.tuev_root, "train", a.per_class_cap, rng)
-    ev = build_split(a.tuev_root, "eval", a.per_class_cap, rng)
+    ev = build_split(a.tuev_root, "eval", a.eval_per_class_cap, rng)
     print(f"[tuev] candidate windows: train={len(tr)} eval={len(ev)}", flush=True)
 
     if a.riemann or a.riemann_only:
@@ -305,7 +311,9 @@ def main():
     if len(Xtr) == 0 or len(Xev) == 0:
         sys.exit("[tuev] no readable windows — check tuev-root / channel count")
 
-    run_probe(Xtr, ytr, Xev, yev, "TRAINED (frozen SIGReg encoder)")
+    reg_t = OmegaConf.select(cfg, "model.ssl.reg_type", default="?")
+    reg_s = OmegaConf.select(cfg, "model.ssl.reg_space", default="?")
+    run_probe(Xtr, ytr, Xev, yev, f"TRAINED (frozen {reg_t} {reg_s} encoder)")
 
     if a.floor:
         rnd = build_encoder(cfg.model).to(device).eval()
