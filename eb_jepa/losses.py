@@ -297,14 +297,25 @@ class VC_IDM_Sim_Regularizer(torch.nn.Module):
             "cov_loss": cov_loss.item(),
             "std_loss": std_loss.item(),
             "sim_loss_t": sim_loss_t.item(),
-            "idm_loss": idm_loss if isinstance(idm_loss, float) else idm_loss.item(),
+            "idm_loss": idm_loss.item(),  # always a tensor (initialised at line ~252)
         }
 
         return total_weighted_loss, total_unweighted_loss, loss_dict
 
 
 class VICRegLoss(nn.Module):
-    """VICReg loss combining invariance, variance (std), and covariance terms."""
+    """VICReg loss combining invariance, variance (std), and covariance terms.
+
+    NOTE (non-canonical coefficients): this is NOT the canonical VICReg recipe
+    (Bardes et al. 2022, weights 25/25/1 for inv/var/cov). Here the invariance
+    (MSE) term is implicitly weighted 1.0, and CovarianceLoss normalises the
+    off-diagonal sum by D*(D-1) (vs 1/D canonical) — so at the projector width
+    D=256 the decorrelation pressure is ~(D-1)x weaker than standard VICReg. The
+    VICReg arm is therefore a de-tuned reference, not a like-for-like canonical
+    VICReg; keep this in mind when reading the "VICReg ~ 0.82 like everything
+    else" cell of the 2x2. (Left as-is so the reported VICReg number stays
+    reproducible; switch to 25/25/1 + 1/D normalisation and re-run to compare.)
+    """
 
     def __init__(self, std_coeff=1.0, cov_coeff=1.0):
         super().__init__()
@@ -359,7 +370,16 @@ def all_reduce(x, op):
 
 
 def epps_pulley(x, t_min=-3, t_max=3, n_points=10):
-    """Epps-Pulley test statistic for Gaussianity."""
+    """Epps-Pulley test statistic for Gaussianity.
+
+    NOTE (fidelity vs LeJEPA): this integrates the characteristic-function
+    discrepancy over t in [-3, 3] with 10 trapezoid knots, whereas the LeJEPA
+    recipe (references/lejepa/SUMMARY.md) uses [-5, 5] with 17 knots (and ~1024
+    slices vs our 256). This is a deliberate speed/compute trade-off; it makes the
+    Gaussianity test coarser than the paper's, so SIGReg here is a reduced-fidelity
+    variant of LeJEPA Algorithm 1, not a faithful reproduction. Widen these (and
+    num_slices) to match the paper if SIGReg is ever re-tuned.
+    """
     # integration points
     t = torch.linspace(t_min, t_max, n_points, device=x.device, dtype=x.dtype)
     # theoretical CF for N(0, 1)
@@ -389,15 +409,19 @@ class BCS(nn.Module):
     def forward(self, z1, z2):
         with torch.no_grad():
             dev = z1.device
-            g = torch.Generator(device=dev)
-            g.manual_seed(self.step)
-            proj_shape = (z1.size(1), self.num_slices)
-            A = torch.randn(proj_shape, device=dev, generator=g)
+            # Draw the slice directions from the GLOBAL (run-seeded) RNG so they
+            # vary with cfg.meta.seed across runs. The previous per-step generator
+            # (g.manual_seed(self.step)) used a counter independent of the run seed,
+            # so every seed saw a byte-identical slice schedule — which excluded
+            # slice randomness from SIGReg's across-seed variance and made its
+            # "tightest variance" an artifact. This fix changes the slice schedule,
+            # so it shifts all SIGReg numbers and MUST precede any reported re-run.
+            A = torch.randn((z1.size(1), self.num_slices), device=dev)
             A /= A.norm(p=2, dim=0)
         view1 = z1 @ A
         view2 = z2 @ A
 
-        self.step += 1
+        self.step += 1  # retained only for logging/diagnostics, not for seeding
         bcs = (epps_pulley(view1).mean() + epps_pulley(view2).mean()) / 2
         invariance_loss = F.mse_loss(z1, z2).mean()
         total_loss = invariance_loss + self.lmbd * bcs
