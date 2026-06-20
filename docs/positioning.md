@@ -46,7 +46,7 @@ pretrain → frozen TUAB), without our in-domain edge.
 Caveats: TUSZ is general **same-site** TUH (not multi-site like the FMs); single seed (in-domain is 3-seed).
 
 ## Frozen head-to-head — EEG-FM-Bench numbers (cite, NOT re-measured)
-Frozen linear probe, TUAB balanced accuracy, quoted from **EEG-FM-Bench (Cui et al., arXiv 2508.17742, Table 1)**:
+Frozen linear probe, TUAB balanced accuracy, quoted from **EEG-FM-Bench (Xiong et al., ICML 2026, arXiv 2508.17742, Table 1)**:
 
 | Frozen FM | BA | | reference | BA |
 |---|---:|---|---|---:|

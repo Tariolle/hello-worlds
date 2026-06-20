@@ -320,19 +320,29 @@
 \begin{frame}[allowframebreaks]{References}
   \small
   \begin{itemize}
+    % --- JEPA objective lineage (what we built on) ---
+    \item Balestriero, R.\ \& LeCun, Y.\ (2025). \href{https://arxiv.org/abs/2511.08544}{\textit{LeJEPA: Provable and Scalable Self-Supervised Learning Without the Heuristics}}. Preprint. \emph{(SIGReg -- our anti-collapse objective)}
     \item Panchavati, S.\ et al.\ (2026). \href{https://arxiv.org/abs/2603.16281}{\textit{Laya: a LeJEPA approach to EEG via latent prediction over reconstruction}}. Preprint. \emph{(our ambient baseline)}
+    \item Arbel, M., Terver, B.\ \& Ponce, J.\ (2026). \href{https://arxiv.org/abs/2605.17671}{\textit{PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment}}. Preprint.
+    \item Bardes, A., Ponce, J.\ \& LeCun, Y.\ (2022). \href{https://arxiv.org/abs/2105.04906}{\textit{VICReg}}. ICLR.
+    \item LeCun, Y.\ (2022). \textit{A Path Towards Autonomous Machine Intelligence (JEPA)}. OpenReview.
+    % --- SPD / Riemannian geometry ---
     \item de Surrel, T., Lotte, F., Chevallier, S.\ \& Yger, F.\ (2025). \href{https://arxiv.org/abs/2502.01512}{\textit{Wrapped Gaussian on the manifold of Symmetric Positive Definite Matrices}}. Preprint.
     \item de Surrel, T.\ \textit{r\_tSNE\_in\_C} -- Riemannian t-SNE on SPD matrices (AIRM). \href{https://github.com/thibaultdesurrel/r_tSNE_in_C}{github.com/thibaultdesurrel/r\_tSNE\_in\_C}. \emph{(our manifold-aware latent viz)}
-    \item Arbel, M., Terver, B.\ \& Ponce, J.\ (2026). \href{https://arxiv.org/abs/2605.17671}{\textit{PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment}}. Preprint.
-    \item \href{https://arxiv.org/abs/2501.08139}{\textit{EEG-ReMinD: Riemannian SPD self-supervised EEG}} (2025). Preprint. \emph{(reconstruction, not JEPA)}
-    \item LeCun, Y.\ (2022). \textit{A Path Towards Autonomous Machine Intelligence (JEPA)}. OpenReview.
+    \item Wang, Z.\ et al.\ (2025). \href{https://arxiv.org/abs/2501.08139}{\textit{EEG-ReMinD: Self-Supervised State Reconstruction-Primed Riemannian Dynamics}}. Preprint. \emph{(Riemannian SPD SSL; reconstruction, not JEPA)}
+    \item Chen, M.\ et al.\ (2025). \href{https://arxiv.org/abs/2508.04956}{\textit{MENDR: Manifold Explainable Neural Data Representations}}. Preprint. \emph{(first Riemannian-SPD EEG FM; precedent for the geometry null)}
+    \item Gemein, L.\ et al.\ (2020). \href{https://arxiv.org/abs/2002.05115}{\textit{Machine-learning-based diagnostics of EEG pathology}}. NeuroImage. \emph{(Riemannian baseline)}
+    % --- EEG foundation models (frozen head-to-head) ---
     \item Jiang, W.-B.\ et al.\ (2024). \href{https://arxiv.org/abs/2405.18765}{\textit{LaBraM: Large Brain Model for EEG}}. ICLR.
     \item Wang, J.\ et al.\ (2024). \href{https://arxiv.org/abs/2412.07236}{\textit{CBraMod: Criss-Cross Brain Foundation Model}}. Preprint.
     \item Yang, C.\ et al.\ (2023). \href{https://arxiv.org/abs/2305.10351}{\textit{BIOT: Biosignal Transformer}}. NeurIPS.
     \item Wang, G.\ et al.\ (2024). \href{https://openreview.net/forum?id=lvS2b8CjG5}{\textit{EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals}}. NeurIPS.
     \item Foumani, N.\ et al.\ (2024). \href{https://arxiv.org/abs/2402.17772}{\textit{EEG2Rep: Enhancing Self-supervised EEG Representation Through Informative Masked Inputs}}. KDD.
-    \item Gemein, L.\ et al.\ (2020). \href{https://arxiv.org/abs/2002.05115}{\textit{Machine-learning-based diagnostics of EEG pathology}} (Riemannian baseline). NeuroImage.
-    \item Bardes, A., Ponce, J.\ \& LeCun, Y.\ (2022). \href{https://arxiv.org/abs/2105.04906}{\textit{VICReg}}. ICLR.
+    \item Kostas, D., Aroca-Ouellette, S.\ \& Rudzicz, F.\ (2021). \href{https://arxiv.org/abs/2101.12037}{\textit{BENDR: Transformers \& Contrastive SSL for EEG}}. Front.\ Hum.\ Neurosci.
+    \item Xiong, W.\ et al.\ (2026). \href{https://arxiv.org/abs/2508.17742}{\textit{EEG-FM-Bench: Systematic Evaluation \& Diagnostic Analyses of EEG Foundation Models}}. ICML. \emph{(source of our frozen FM head-to-head numbers)}
+    % --- Dataset \& code ---
+    \item Obeid, I.\ \& Picone, J.\ (2016). \href{https://doi.org/10.3389/fnins.2016.00196}{\textit{The Temple University Hospital EEG Data Corpus}}. Front.\ Neurosci.\ 10:196. \emph{(TUAB / TUSZ / TUEV)}
+    \item \texttt{eb\_jepa} -- JEPA reference implementation, Meta AI / FAIR. \href{https://github.com/facebookresearch/eb_jepa}{github.com/facebookresearch/eb\_jepa}. \emph{(our trimmed code vendor)}
   \end{itemize}
 \end{frame}
 
