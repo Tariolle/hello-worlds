@@ -103,7 +103,7 @@
   \vspace{0.6em}
   \begin{itemize}
     \item \textbf{Why frozen?} It measures the \emph{representation}, not the fine-tuner. Apples-to-apples across methods, and the regime where many published FMs quietly collapse.
-    \item \textbf{Selection rule}: hyper-parameters chosen on a patient-disjoint \emph{train} dev-split; the \nrecev-recording eval is touched \textbf{once}, config locked -- no selection leakage.
+    \item \textbf{Selection rule}: probe hyper-parameters are fixed \emph{a priori} (\texttt{StandardScaler} $+$ balanced \texttt{LogisticRegression}, \texttt{max\_iter}=3000) -- \textbf{no} hyper-parameter search; the \nrecev-recording eval is touched \textbf{once} with a train-only scaler -- no selection leakage.
   \end{itemize}
 \end{frame}
 
@@ -124,7 +124,7 @@
     \column{0.44\textwidth}
     \begin{block}{Why we don't chase accuracy}
       \footnotesize
-      TUAB labels are noisy: inter-rater agreement $\sim$86--88\%, no published Bayes ceiling.
+      TUAB labels come from clinical reports and are known to be noisy; we are not aware of a published label-noise / Bayes-ceiling estimate.
       \textbf{Sub-1-point gaps without multi-seed CIs are not meaningful} -- so we report
       \emph{balanced accuracy on the full split}, 3 seeds, with error bars.
     \end{block}
@@ -293,7 +293,7 @@
     \column{0.54\textwidth}
     \begin{itemize}\footnotesize
       \item AdamW, lr $10^{-3}$, weight decay $10^{-6}$
-      \item \batch{} batch, \epochs{} epochs, $3$ B200 GPUs
+      \item \batch{} batch, \epochs{} epochs, one B200 per run ($3$ cells/seeds fanned out concurrently)
       \item Seeds $\{1, 1000, 10000\}$
     \end{itemize}
     \column{0.46\textwidth}
@@ -370,7 +370,7 @@
   \begin{itemize}
     \item In our pipeline, a \textbf{random (untrained) conv encoder} + linear probe reaches $\sim$\floorv{} BalAcc.
     \item EEG abnormality is \emph{power-driven}; random conv filters preserve band power. The strong frozen numbers are largely \emph{architecture $+$ task}.
-    \item This floor is $\approx$ LaBraM-linear (0.795) and EEGPT-frozen (0.798), and \emph{above} EEG2Rep / BIOT frozen \,(indicative -- preprocessing differs).
+    \item This floor is $\approx$ LaBraM-linear (0.795) / EEGPT-frozen (0.798) \emph{as self-reported by those papers} (different protocols); under the one apples-to-apples bench we cite (EEG-FM-Bench) the floor sits \emph{above} all frozen FMs.
   \end{itemize}
   \vspace{0.4em}
   \begin{alertblock}{Why disclose it?}
@@ -522,7 +522,7 @@
   \vspace{0.6em}
   \begin{itemize}
     \item \textbf{Single dataset.} Specialization $\neq$ generality. The honest generality test is frozen cross-dataset transfer (TUEV/Sleep-EDF) -- started, but left as future work rather than over-claimed.
-    \item \textbf{Underpowered null.} $n{=}3$ seeds; the inter-cell gaps ($\leq 0.013$) are below the eval's bootstrap sampling noise ($\pm0.02$--$0.03$). The honest statement is ``\emph{benchmark-resolution-limited}'', not ``geometry is dead''.
+    \item \textbf{Underpowered null.} $n{=}3$ seeds; the inter-cell gaps ($\leq 0.013$) are below a plausible eval bootstrap CI ($\pm0.02$--$0.03$, not yet computed). The honest statement is ``\emph{benchmark-resolution-limited}'', not ``geometry is dead''.
     \item \textbf{The principled fix.} A wrapped-Gaussian SIGReg on the \emph{channel} covariance, AIRM tangent at the running Fr\'echet mean -- $\sim$40 LOC $+$ one re-pretrain, with real \texttt{eigh}-backward numerical risk.
     \item \textbf{Where geometry should pay off.} Robustness, calibration, and transfer under montage/threshold shift -- \emph{not} a balanced-accuracy race.
   \end{itemize}
@@ -538,8 +538,8 @@
     \column{0.5\textwidth}
     \textbf{Built on \texttt{eb\_jepa} -- and it carries the baseline.}
     \begin{itemize}
-      \item Our encoder, SSL loop, and the \emph{clean EEG data pipeline} are \texttt{eb\_jepa} (the framework we were handed). Our work is an \emph{additive} comparative study on top -- geometry/PEIRA cells, reliability axes, latent viz -- \emph{not} a reimplementation.
-      \item \textbf{A large share of the frozen-probe strength is \texttt{eb\_jepa}'s}, not ours: its preprocessing $+$ JEPA implementation do much of the heavy lifting (it makes TUAB tractable under a \emph{frozen} probe). We claim the \emph{study}, not the raw accuracy.
+      \item The \emph{EEG dataloader/preprocessing} and the \emph{SSL loss primitives} (VICReg, SIGReg/BCS) are \texttt{eb\_jepa} (the handed framework). The \textbf{encoder architecture and the SSL training loop are ours}; our work is an \emph{additive} comparative study on top -- geometry/PEIRA cells, reliability axes, latent viz.
+      \item \textbf{The signal preprocessing is the organizers'} (19\,ch, 200\,Hz, bandpass$+$notch); \texttt{eb\_jepa}'s dataloader $+$ loss primitives make TUAB tractable under a \emph{frozen} probe. We claim the \emph{study}, not the raw accuracy.
     \end{itemize}
     \column{0.5\textwidth}
     \textbf{We do \emph{not} claim SOTA.}
@@ -652,7 +652,7 @@
   \begin{itemize}
     \item \textbf{Feature extraction}: 16 evenly-spaced \winsec~s windows per recording $\to$ pooled \texttt{represent} $\to$ averaged to a recording-level vector.
     \item \textbf{Probe}: \texttt{StandardScaler} $+$ logistic regression on the frozen features. \textbf{Frozen encoder, no fine-tuning.}
-    \item \textbf{Split}: train recordings fit the probe; the \nrecev{}-recording eval (held-out patients) is scored \textbf{once}. Hyper-parameters selected on a patient-disjoint \emph{train} dev-split only.
+    \item \textbf{Split}: train recordings fit the probe; the \nrecev{}-recording eval (held-out patients) is scored \textbf{once}. Probe hyper-parameters are fixed \emph{a priori} (no search); a patient-disjoint dev-split for any future selection is specified but not yet wired in.
     \item \textbf{Metrics}: balanced accuracy (primary) $+$ AUROC, on the full \nrectr/\nrecev{} split.
     \item \textbf{Floor}: an untrained random encoder, same probe, gives the $\sim$\floorv{} honest denominator.
   \end{itemize}
@@ -747,9 +747,9 @@
   \footnotesize
   \begin{itemize}
     \item \textbf{Report \ba{}, not \babest{}.} The single-seed \babest{} (SIGReg-ambient, seed 1) was the \emph{top} of that cell's range; the 3-seed mean is \ba{}.
-    \item \textbf{SIGReg slice-seed bug (confirmed).} \texttt{BCS} seeds its random slice directions from \texttt{self.step}, not the run seed -- so the slice schedule is identical across the 3 seeds. SIGReg's error bars don't include slicing randomness; its ``tightest variance'' is partly an artifact. The fix must precede any re-run (it shifts all SIGReg numbers).
+    \item \textbf{SIGReg slice-seed bug (found, now fixed).} The reported 3-seed SIGReg numbers were produced by code that seeded \texttt{BCS} slice directions from a per-step counter (run-seed-independent), so the 3 seeds shared a byte-identical slice schedule -- the error bars \emph{understate} true variance. The code is now fixed (\texttt{losses.py} draws slices from the run-seeded RNG); the reported numbers predate the fix and were deliberately not re-run.
     \item \textbf{PEIRA tangent (0.807) is not evidence against wrapped-Gaussian.} PEIRA is distribution-free $\Rightarrow$ immune to the isotropic-target mis-specification $\Rightarrow$ it never tests that hypothesis. $0.807$ vs $0.815$ is within noise.
-    \item \textbf{Bootstrap CI.} Resampling the \nrecev{} eval recordings gives a $\pm0.02$--$0.03$ CI -- wider than the max inter-cell gap (0.013). The null is benchmark-resolution-limited.
+    \item \textbf{Bootstrap CI (illustrative, not yet run).} A bootstrap over the \nrecev{} eval recordings would plausibly give a $\pm0.02$--$0.03$ CI -- wider than the max inter-cell gap (0.013) -- supporting ``benchmark-resolution-limited''. The resampling is not yet committed.
     \item \textbf{Preprocessing differs} from the published FM rows -- the head-to-head is indicative, not a controlled re-run of their pipelines.
   \end{itemize}
 \end{frame}
