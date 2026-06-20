@@ -709,6 +709,38 @@
   \end{center}
 \end{frame}
 
+\begin{frame}{Appendix: manifold viz across TUH tasks -- sustained vs transient}
+  \scriptsize
+  \begin{columns}[T]
+    \column{0.5\textwidth}\centering
+    \textbf{TUSZ -- 5 seizure types (clusters)}\\[-0.1em]
+    \includegraphics[width=\textwidth]{riemann_latent_tusz.png}
+    \column{0.5\textwidth}\centering
+    \textbf{TUEV -- 6 event types (decodable, not clustered)}\\[-0.1em]
+    \includegraphics[width=\textwidth]{riemann_latent_tuev_annot.png}
+  \end{columns}
+  \vspace{0.2em}
+  \begin{columns}[T]
+    \column{0.40\textwidth}\centering
+    \begin{tabular}{lcc}
+      \toprule
+      task (\#cls) & sil$_{\text{Euc}}$ & sil$_{\text{AIRM}}$ \\
+      \midrule
+      TUAB (2, abnormal)  & 0.049 & \textbf{0.052} \\
+      TUSZ (5, seizure)   & 0.059 & \textbf{0.062} \\
+      TUEV (6, events)    & $-$0.003 & $-$0.004 \\
+      \bottomrule
+    \end{tabular}
+    \column{0.60\textwidth}
+    \begin{itemize}
+      \item Clusters \textbf{sustained} phenomena (abnormality, seizures), not \textbf{transient} events -- TUEV's sub-second events are diluted by the 10\,s window.
+      \item \textbf{Silhouette $\ne$ decodability}: TUEV stays linearly decodable (probe BA ${\sim}0.40$, 1st- \emph{and} 2nd-order, $\gg$ chance 0.17); clustering fails, not the features.
+      \item AIRM $\ge$ Euclidean \emph{where there is cluster structure} (TUAB, TUSZ); at TUEV's ${\approx}0$ it is within noise.
+      \item SIGReg (ours) $>$ random-init on every task, in both decodability and clustering.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
 \begin{frame}{Appendix: caveats we disclose to the jury}
   \footnotesize
   \begin{itemize}
