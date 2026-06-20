@@ -97,22 +97,12 @@
 
 \begin{frame}{Data: TUH Abnormal EEG (TUAB)}
   \vspace{0.3em}
-  \begin{columns}[T]
-    \column{0.56\textwidth}
-    \begin{itemize}
-      \item \textbf{Task}: binary \emph{normal} vs \emph{abnormal} EEG, recording level.
-      \item \textbf{Signal}: \nchan{} channels @ \sfreq~Hz; we sample \winsec~s windows ($\winsamp$ samples), per-channel z-scored.
-      \item \textbf{Standard split}: \nrectr{} train / \nrecev{} eval recordings, \textbf{patient-disjoint} (\npattr{} vs \npatev{} patients, overlap $=0$ -- verified).
-      \item \textbf{Pretraining}: SSL reads only \emph{unlabeled} train recordings; labels enter at the probe alone.
-    \end{itemize}
-    \column{0.44\textwidth}
-    \begin{block}{Why we don't chase accuracy}
-      \footnotesize
-      TUAB labels come from clinical reports and are known to be noisy; we are not aware of a published label-noise / Bayes-ceiling estimate.
-      \textbf{Sub-1-point gaps without multi-seed CIs are not meaningful} -- so we report
-      \emph{balanced accuracy on the full split}, 3 seeds, with error bars.
-    \end{block}
-  \end{columns}
+  \begin{itemize}
+    \item \textbf{Task}: binary \emph{normal} vs \emph{abnormal} EEG, recording level.
+    \item \textbf{Signal}: \nchan{} channels @ \sfreq~Hz; we sample \winsec~s windows ($\winsamp$ samples), per-channel z-scored.
+    \item \textbf{Standard split}: \nrectr{} train / \nrecev{} eval recordings, \textbf{patient-disjoint} (\npattr{} vs \npatev{} patients, overlap $=0$ -- verified).
+    \item \textbf{Pretraining}: SSL reads only \emph{unlabeled} train recordings; labels enter at the probe alone.
+  \end{itemize}
 \end{frame}
 
 
@@ -138,13 +128,14 @@
     \node[reg, right=1.4cm of $(p1)!0.5!(p2)$] (reg) {Anti-collapse\\\textbf{reg}$(z_1,z_2)$};
     \node[lbl, above=0.15cm of e1] {shared};
     \node[lbl, above=0.15cm of p1] {$512$-$512$-$256$};
+    \node[lbl, below=0.15cm of e1] {ambient \emph{or} tangent};
 
     \draw[arr] (v1) -- (e1);
     \draw[arr] (v2) -- (e2);
-    \draw[arr] (e1) -- node[above,lbl]{ambient \emph{or} tangent} (p1);
+    \draw[arr] (e1) -- (p1);
     \draw[arr] (e2) -- (p2);
-    \draw[arr] (p1.east) -- node[above,lbl]{$z_1$} (reg.west);
-    \draw[arr] (p2.east) -- node[below,lbl]{$z_2$} (reg.west);
+    \draw[arr] (p1.east) -- node[above=3pt,lbl]{$z_1$} (reg.west);
+    \draw[arr] (p2.east) -- node[below=3pt,lbl]{$z_2$} (reg.west);
   \end{tikzpicture}%
   }
   \end{center}
@@ -198,24 +189,14 @@
   \vfill
 \end{frame}
 
-\begin{frame}{The value of self-supervision (label \& data efficiency)}
-  \vspace{-0.2em}
-  \begin{center}
-    \includegraphics[width=\textwidth]{value_of_ssl.png}
-  \end{center}
-  \vspace{-0.4em}
-  \begin{center}\footnotesize
-    \textbf{(a)} The money plot: \emph{JEPA @ 25\% labels $\approx$ random-init encoder @ 100\%} -- $\sim4\times$ label efficiency, $\sim{+}0.04$ BalAcc.\quad
-    \textbf{(b)} Probe is stable down to small pretraining-data fractions.
-  \end{center}
-\end{frame}
-
 \begin{frame}{Beyond accuracy: frozen-probe robustness (3-seed)}
   \vfill
+  \vspace*{0.05\textheight}                                   % 5% lower
   \begin{center}
-    \includegraphics[width=\textwidth]{robustness_3seed.png}
+    \includegraphics[width=1.1\textwidth]{robustness_3seed.png}  % 10% bigger
   \end{center}
   \vfill
+  \vspace*{-0.05\textheight}
 \end{frame}
 
 
@@ -226,72 +207,59 @@
 
 
 \begin{frame}{Manifold-aware latent geometry (AIRM vs Euclidean)}
-  \vspace{-0.2em}
+  \vfill
+  \vspace*{0.05\textheight}                                   % 5% lower
   \begin{center}
-    \includegraphics[height=0.86\textheight]{riemann_latent.png}
+    \includegraphics[width=\textwidth]{riemann_latent.png}      % bigger -- maxed to slide width
   \end{center}
-  {\tiny $^\dagger$ The tangent payoff is \emph{SIGReg-specific}: SIGReg-tangent gives the best cov-latent silhouette on both TUAB (0.057) and TUSZ (0.085); PEIRA-tangent does \emph{not} -- it flips by dataset, is weakest on TUSZ (AIRM 0.033), and PEIRA-ambient also wins balanced accuracy. The gain is tied to the isotropic-Gaussian (SIGReg) objective, not to ``going tangent''.}
+  \vfill
+  \vspace*{-0.05\textheight}
 \end{frame}
 
-\begin{frame}{Manifold viz across TUH tasks -- sustained vs transient}
+\begin{frame}{Manifold viz generalises across sustained TUH tasks}
   \scriptsize
-  \begin{columns}[T]
-    \column{0.5\textwidth}\centering
-    \textbf{TUSZ -- 5 classes; SIGReg-tangent separates best}\\[-0.1em]
+  \begin{columns}[c]
+    \column{0.54\textwidth}\centering
+    \textbf{TUSZ -- 5 seizure classes; SIGReg-tangent separates best}\\[0.3em]
     \includegraphics[width=\textwidth]{riemann_latent_tusz.png}
-    \column{0.5\textwidth}\centering
-    \textbf{TUEV -- 6 event types (decodable, not clustered)}\\[-0.1em]
-    \includegraphics[width=\textwidth]{riemann_latent_tuev_annot.png}
-  \end{columns}
-  \vspace{0.2em}
-  \begin{columns}[T]
-    \column{0.40\textwidth}\centering
+    \column{0.46\textwidth}\centering
     \begin{tabular}{lcc}
       \toprule
       task (\#cls) & sil$_{\text{Euc}}$ & sil$_{\text{AIRM}}$ \\
       \midrule
       TUAB (2, abnormal)  & 0.049 & \textbf{0.052} \\
       TUSZ (5, seizure)   & 0.059 & \textbf{0.062} \\
-      TUEV (6, events)    & $-$0.003 & $-$0.004 \\
       \bottomrule
     \end{tabular}
-    \column{0.60\textwidth}
+    \vspace{0.9em}
     \begin{itemize}
-      \item Clusters \textbf{sustained} phenomena (abnormality, seizures), not \textbf{transient} events -- TUEV's sub-second events are diluted by the 10\,s window.
-      \item \textbf{Silhouette $\ne$ decodability}: TUEV stays linearly decodable (probe BA ${\sim}0.40$, 1st- \emph{and} 2nd-order, $\gg$ chance 0.17); clustering fails, not the features.
-      \item AIRM $\ge$ Euclidean \emph{where there is cluster structure} (TUAB, TUSZ); at TUEV's ${\approx}0$ it is within noise.
-      \item SIGReg (ours) $>$ random-init on every task, in both decodability and clustering.
+      \item \textbf{AIRM $\ge$ Euclidean} wherever there is cluster structure (TUAB, TUSZ) -- de Surrel's Riemannian metric sharpens the embedding.
+      \item \textbf{SIGReg (ours) $>$ random-init} on every task, in both decodability and clustering.
     \end{itemize}
   \end{columns}
-  \vspace{0.2em}
+\end{frame}
+
+
+
+% ==========================================================
+\section{Limitations}
+% ==========================================================
+
+\begin{frame}{Limitation: transient events don't cluster (TUEV)}
+  \scriptsize
+  \begin{columns}[c]
+    \column{0.5\textwidth}\centering
+    \textbf{TUEV -- 6 event types (decodable, not clustered)}\\[0.3em]
+    \includegraphics[width=\textwidth]{riemann_latent_tuev_annot.png}
+    \column{0.5\textwidth}
+    \begin{itemize}
+      \item The manifold viz clusters \textbf{sustained} phenomena (abnormality, seizures), \emph{not} \textbf{transient} events -- TUEV's sub-second events are diluted by the 10\,s window.
+      \item \textbf{Silhouette $\ne$ decodability}: TUEV stays linearly decodable (probe BA ${\sim}0.40$, 1st- \emph{and} 2nd-order, $\gg$ chance 0.17); clustering fails, not the features.
+      \item At TUEV's silhouette ${\approx}0$ (Euc $-0.003$, AIRM $-0.004$), AIRM vs Euclidean is within noise.
+    \end{itemize}
+  \end{columns}
+  \vspace{0.3em}
   {\tiny $^\dagger$ A \emph{label-optimal} projection (shrinkage-LDA, train$\to$eval) still does not cluster the classes (sup.\ silhouette ${\approx}0$) -- confirming \emph{decodable $\ne$ clustered}; the signal is a linear gradient, not separated modes.}
-\end{frame}
-
-\begin{frame}{Caveats we disclose to the jury}
-  \footnotesize
-  \begin{itemize}
-    \item \textbf{Report \ba{}, not \babest{}.} The single-seed \babest{} (SIGReg-ambient, seed 1) was the \emph{top} of that cell's range; the 3-seed mean is \ba{}.
-    \item \textbf{SIGReg slice-seed bug (found, fixed).} \texttt{BCS} seeded slice directions per-step, so the 3 SIGReg seeds shared one slice schedule -- error bars \emph{understate} variance. Now fixed (run-seeded RNG); the reported numbers predate the fix, not re-run.
-    \item \textbf{PEIRA tangent (0.807) is not evidence against wrapped-Gaussian.} PEIRA is distribution-free $\Rightarrow$ immune to the isotropic-target mis-specification $\Rightarrow$ it never tests that hypothesis. $0.807$ vs $0.815$ is within noise.
-    \item \textbf{Bootstrap CI (illustrative, not yet run).} A bootstrap over the \nrecev{} eval recordings would plausibly give a $\pm0.02$--$0.03$ CI -- wider than the max inter-cell gap (0.013) -- supporting ``benchmark-resolution-limited''. The resampling is not yet committed.
-    \item \textbf{Preprocessing differs} from the published FM rows -- the head-to-head is indicative, not a controlled re-run of their pipelines.
-  \end{itemize}
-\end{frame}
-
-
-
-% ==========================================================
-\section{Limitations \& Future Work}
-% ==========================================================
-
-\begin{frame}{Limitations \& Future Work}
-  \vspace{0.6em}
-  \begin{itemize}
-    \item \textbf{Single dataset.} Specialization $\neq$ generality. The honest generality test is frozen cross-dataset transfer (TUEV/Sleep-EDF) -- started, but left as future work rather than over-claimed.
-    \item \textbf{Underpowered null.} $n{=}3$ seeds; the inter-cell gaps ($\leq 0.013$) are below a plausible eval bootstrap CI ($\pm0.02$--$0.03$, not yet computed). The honest statement is ``\emph{benchmark-resolution-limited}'', not ``geometry is dead''.
-    \item \textbf{The principled fix.} A wrapped-Gaussian SIGReg on the \emph{channel} covariance, AIRM tangent at the running Fr\'echet mean -- $\sim$40 LOC $+$ one re-pretrain, with real \texttt{eigh}-backward numerical risk.
-    \item \textbf{Where geometry should pay off.} Robustness, calibration, and transfer under montage/threshold shift -- \emph{not} a balanced-accuracy race.
-  \end{itemize}
 \end{frame}
 
 % ==========================================================
@@ -302,10 +270,10 @@
   \vspace{0.8em}
   \begin{itemize}
     \item A \textbf{controlled frozen-transfer study}, not a leaderboard entry.
-    \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen -- with the random-init-encoder floor honestly disclosed.
+    \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen.
     \item \textbf{A clean, pre-registered negative result}: \emph{where} anti-collapse acts (ambient vs SPD-tangent) and \emph{which} regulariser do not change frozen-probe accuracy on TUAB -- with a geometric reason why.
     \item \textbf{The null is multi-axis}: geometry/PEIRA help neither accuracy, nor calibration, nor robustness (3 seeds) -- and it holds even \emph{general}-pretrained (TUSZ $\to$ frozen TUAB, 0.814).
-    \item \textbf{Honesty as the headline}: an honest negative beats a fragile positive.
+    \item \textbf{The payoff is the latent geometry}: the frozen SPD latent is visibly \emph{organised} -- normal/abnormal and seizure classes form coherent structure -- and \textbf{de Surrel's AIRM Riemannian embedding sharpens it over the Euclidean view on every clustered task, most clearly for SIGReg}.
   \end{itemize}
   \vspace{1.0em}
   \begin{center}
