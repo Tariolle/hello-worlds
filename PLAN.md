@@ -44,7 +44,9 @@ numbers; (2) a clean **3-seed null** on geometry/PEIRA with a geometric mechanis
   hyperparameter/probe selection. *(Florent; blocks P1)*
 - [ ] 3-seed **means + 95% CIs** wired into `benchmark.py`.
 
-### 🟠 P1 — competitive core (makes the story land)
+### 🟠 P1 — competitive core (the in-domain FIGURES = the real deliverable)
+> The 0.819 number is **done**; these figures are **not** — and they, not the bare
+> number, carry the jury. **Do all of P1 BEFORE any cross-dataset attempt.**
 - [ ] **FM checkpoints under OUR identical frozen probe** = the honest head-to-head
   (they collapse frozen, we hold). Finalize the LaBraM 0.604 / CBraMod 0.547 row,
   note the preprocessing-differs caveat.
@@ -52,10 +54,14 @@ numbers; (2) a clean **3-seed null** on geometry/PEIRA with a geometric mechanis
   floor — the money plot ("JEPA @25% labels ≈ random @100%").
 - [ ] 2×2 **null table** with error bars + the wrapped-Gaussian mechanism slide.
 
-### 🟢 P2 — bonus (only if time; rentability order)
-- [ ] **Cheapest generality signal — take the FROZEN SIGReg encoder and
-  linear-probe ONE extra dataset (TUEV or a non-TUH set), NO re-pretrain.**
-  Directly tests transfer for ~free; strongest "generality" add before 17:30.
+### 🟢 P2 — bonus (only AFTER P1 in-domain figures are locked; time-boxed)
+- [ ] **Cross-dataset frozen transfer — TUEV first.** Take the FROZEN SIGReg encoder,
+  linear-probe a second dataset, NO re-pretrain. **"No re-pretrain" ≠ cheap:** the cost
+  is the new loader + channel/montage alignment + new head/metric — the most time-risky
+  item left. **TUEV first** (same TUH montage → encoder-compatible; but **cross-TASK,
+  same-site** → label it honestly, *not* "cross-site"). Non-TUH (Sleep-EDF / BCI /
+  CHB-MIT) = the real cross-distribution claim but max friction → only if TUEV is trivial.
+  **Time-box 45–60 min; if the number isn't sane → "future work".**
 - [ ] Pretrain-data-efficiency curve (BA vs % pretrain data).
 - [ ] Collapse-dynamics figure (eff_rank / per-dim std vs epoch) per cell.
 - [ ] Robustness: probe under channel dropout / injected noise.
