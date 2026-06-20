@@ -529,6 +529,29 @@
 \end{frame}
 
 % ==========================================================
+\section{Credit \& honest scope}
+% ==========================================================
+
+\begin{frame}{Credit \& honest scope: what 24h bought (and what it didn't)}
+  \footnotesize
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \textbf{Built on \texttt{eb\_jepa} -- and it carries the baseline.}
+    \begin{itemize}
+      \item Our encoder, SSL loop, and the \emph{clean EEG data pipeline} are \texttt{eb\_jepa} (the framework we were handed). Our work is an \emph{additive} comparative study on top -- geometry/PEIRA cells, reliability axes, latent viz -- \emph{not} a reimplementation.
+      \item \textbf{A large share of the frozen-probe strength is \texttt{eb\_jepa}'s}, not ours: its preprocessing $+$ JEPA implementation do much of the heavy lifting (it makes TUAB tractable under a \emph{frozen} probe). We claim the \emph{study}, not the raw accuracy.
+    \end{itemize}
+    \column{0.5\textwidth}
+    \textbf{We do \emph{not} claim SOTA.}
+    \begin{itemize}
+      \item 24h $=$ a frozen linear-probe study on \emph{one} task (TUAB), TUAB-tuned pipeline. Cross-model numbers are \textbf{indicative, not controlled re-runs} of others' pipelines.
+      \item Laya (recent LeJEPA SOTA): \textbf{29{,}109\,h / 20{,}940 subjects / 17 montages / 14 tasks} under the \emph{same} frozen contract -- a different league of \emph{generality}. Our single-task value $\neq$ their generalist value.
+      \item \textbf{What 24h bought}: a clean multi-axis \emph{negative}, \emph{healthy-training} evidence it is not a broken run, and a \emph{manifold-aware} latent viz (AIRM Riemannian t-SNE) -- a methods contribution, not a leaderboard claim.
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+% ==========================================================
 \section{Conclusion}
 % ==========================================================
 
