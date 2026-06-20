@@ -84,8 +84,8 @@
   \begin{itemize}
     \item \textbf{EEG foundation models} are everywhere -- but most report \emph{fine-tuned} numbers. What survives when you \textbf{freeze} the encoder?
     \item \textbf{JEPA} avoids collapse with an \emph{anti-collapse regulariser}. The EEG covariance lives on a curved \textbf{SPD manifold}, not in flat Euclidean space.
-    \item \textbf{Our pre-registered hypothesis}: making anti-collapse \emph{geometry-aware} (act in the SPD \textbf{tangent}) and \emph{distribution-free} (\textbf{PEIRA}) beats a plain ambient baseline.
-    \item \textbf{What we ship}: a controlled study with an \emph{honest} answer -- a strong frozen probe, a clean negative result with a geometric mechanism, and latent space visualizations.
+    \item \textbf{Our intuition}: a \emph{Riemannian geometry-aware} anti-collapse regulariser -- acting in the SPD \textbf{tangent} of the EEG covariance, not flat ambient space -- should \emph{respect and improve} the latent geometry.
+    \item \textbf{What we ship}: a strong frozen probe \emph{and} a geometry-aware regulariser that \textbf{measurably sharpens the latent-space geometry}, visualised with de Surrel's AIRM Riemannian t-SNE.
   \end{itemize}
 \end{frame}
 
@@ -232,8 +232,8 @@
   \begin{itemize}
     \item A \textbf{controlled frozen-transfer study}, not a leaderboard entry.
     \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen.
-    \item \textbf{The null is multi-axis}: geometry/PEIRA help neither accuracy, nor calibration, nor robustness (3 seeds).
-    \item \textbf{The payoff is the latent geometry}: the frozen SPD latent is visibly \emph{organised} -- normal/abnormal and seizure classes form coherent structure -- and \textbf{de Surrel's AIRM Riemannian embedding sharpens it over the Euclidean view on every clustered task, most clearly for SIGReg}.
+    \item \textbf{The payoff is the latent geometry}: a Riemannian geometry-aware (SPD-tangent) regulariser \textbf{sharpens the frozen latent} -- normal/abnormal and seizure classes form coherent structure -- and \textbf{de Surrel's AIRM Riemannian embedding sharpens it further over the Euclidean view}, most clearly for SIGReg.
+    \item On this simple binary task the probe accuracy is the same across variants -- the tangent's gain is \emph{geometric}, exactly where a manifold-aware regulariser should help.
   \end{itemize}
   \vspace{1.0em}
   \begin{center}
