@@ -1,0 +1,47 @@
+# Supervised-from-scratch baseline on TUAB — the fair yardstick for SSL.
+# Same EEGEncoder1D as the SSL configs, trained end-to-end with a linear head +
+# class-balanced cross-entropy, EARLY-STOPPED on a patient-disjoint dev split
+# carved from TRAIN (never eval). Produces (a) an end-to-end held-out number and
+# (b) a checkpoint in the SSL format so examples.eeg.eval gives the frozen-probe
+# number on the identical protocol as our SSL 0.819.
+
+meta:
+  seed: 1
+  ckpt_dir: ./checkpoints/sup_tuab_s1   # cluster sbatch overrides to $WORK/checkpoints/...
+
+data:
+  # same TUAB_PREPROCESSED path the SSL configs use on Dalia
+  data_root: /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED
+  split: train
+  n_channels: 19
+  sfreq: 200
+  window_sec: 10.0
+  n_windows: 16          # evenly-spaced windows per recording (train + eval)
+  batch_size: 16         # RECORDINGS per step -> 16*16 = 256 windows (matches SSL batch)
+  num_workers: 16
+  label_scheme: tuab
+  class_names:
+  # SAME augmentations as the SSL views (its strongest, fairest shot)
+  aug_noise_std: 0.1
+  aug_scale_jitter: 0.2
+  aug_chan_drop_p: 0.2
+  aug_time_mask_frac: 0.2
+
+model:
+  n_channels: 19
+  encoder:
+    widths: [64, 128, 128, 256]   # identical to cfgs/train.yaml
+    d_model: 256
+    d_cov: 32
+    kernel: 7
+    stride: 2
+
+sup:
+  dev_frac: 0.15         # 15% of TRAIN patients held out for early stopping
+  dev_seed: 0            # fixed -> same dev split across model seeds
+  max_epochs: 60
+  patience: 8            # epochs without dev-balacc improvement
+
+optim:
+  lr: 0.001
+  weight_decay: 0.0001   # a touch more than SSL (1e-6): supervised needs the regularisation
