@@ -132,11 +132,29 @@ def run(fname="examples/eeg/cfgs/train.yaml", cfg=None, folder=None, **overrides
     ckpt_dir = folder or cfg.meta.ckpt_dir
     os.makedirs(ckpt_dir, exist_ok=True)
 
-    import json, time
+    import json, math, time
     history = []
     log_path = os.path.join(ckpt_dir, "train_log.json")
 
-    for epoch in range(cfg.optim.epochs):
+    total_epochs  = cfg.optim.epochs
+    base_lr       = cfg.optim.lr
+    warmup_epochs = cfg.optim.get("warmup_epochs", 0)
+    min_lr        = cfg.optim.get("min_lr", 1e-6)
+    use_cosine    = warmup_epochs > 0 or cfg.optim.get("cosine_lr", False)
+
+    def _lr(epoch):
+        if epoch < warmup_epochs:
+            return base_lr * (epoch + 1) / max(warmup_epochs, 1)
+        t = epoch - warmup_epochs
+        T = max(total_epochs - warmup_epochs, 1)
+        return min_lr + 0.5 * (base_lr - min_lr) * (1 + math.cos(math.pi * t / T))
+
+    for epoch in range(total_epochs):
+        if use_cosine:
+            lr = _lr(epoch)
+            for pg in opt.param_groups:
+                pg["lr"] = lr
+
         ssl.train()
         epoch_losses = []
         t0 = time.time()

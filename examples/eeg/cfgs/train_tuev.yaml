@@ -6,13 +6,13 @@ meta:
   ckpt_dir: ./checkpoints/eeg_tuev_sigreg
 
 data:
-  data_root: /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUEV_PREPROCESSED
+  data_root: /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUEV_RAW_DATA
   split: train
   n_channels: 19
   sfreq: 200
-  window_sec: 4.0       # TUEV events are 1-4 s; 4s = 800 samples @ 200 Hz
+  window_sec: 1.0       # TUEV events are 1-second windows; 1s = 200 samples @ 200 Hz
   epoch_size: 20000
-  n_windows: 1          # probe: one segment = one item
+  n_windows: 1          # probe: one 1-second segment = one item
   batch_size: 256
   num_workers: 16
   aug_noise_std: 0.1
@@ -23,9 +23,9 @@ data:
 model:
   n_channels: 19
   encoder:
-    widths: [64, 128, 128, 256]   # stride-2 x4: 800 -> 50 time steps
+    widths: [64, 128, 128, 256]   # stride-2 x4: 200 -> 13 time steps
     d_model: 256
-    d_cov: 32                     # 32 < 50 -> full-rank covariance
+    d_cov: 8                      # 8 < 13 -> full-rank covariance (200 samples / 16)
     kernel: 7
     stride: 2
   ssl:
@@ -41,4 +41,6 @@ model:
 optim:
   lr: 0.001
   weight_decay: 0.000001
-  epochs: 30
+  epochs: 60
+  warmup_epochs: 5    # cosine LR with 5-epoch warmup
+  min_lr: 0.00005

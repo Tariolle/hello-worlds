@@ -1,0 +1,55 @@
+# EEG I-JEPA — latent-predictive SSL with EMA target encoder.
+# Drop-in replacement for train.yaml: same encoder, same data, fundamentally different SSL.
+#
+# Key differences vs SIGReg/VICReg:
+#   - EMA target encoder (BYOL-style) prevents collapse without regularization alone
+#   - Predictor in latent space (the JEPA part): context representation -> target representation
+#   - Heavy temporal masking (40%) on context view: forces true semantic understanding
+#   - Cosine LR + warmup: standard best practice, absent from previous runs
+#   - BCS as safety net (not the primary loss) on top of prediction objective
+
+meta:
+  seed: 1
+  ckpt_dir: ./checkpoints/eeg_ijepa
+
+data:
+  data_root: /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED
+  split: train
+  n_channels: 19
+  sfreq: 200
+  window_sec: 10.0
+  epoch_size: 20000
+  n_windows: 16
+  batch_size: 256
+  num_workers: 16
+  # Light augmentations on both views (heavy masking added in compute_loss)
+  aug_noise_std: 0.05         # lighter noise than SIGReg: target should be clean-ish
+  aug_scale_jitter: 0.1
+  aug_chan_drop_p: 0.1
+  aug_time_mask_frac: 0.1    # light random mask in dataset; main mask is in model
+
+model:
+  n_channels: 19
+  encoder:
+    widths: [64, 128, 128, 256]
+    d_model: 256
+    d_cov: 32
+    kernel: 7
+    stride: 2
+  ssl:
+    # I-JEPA specific
+    mask_ratio: 0.4          # fraction of time steps masked in context view
+    pred_hidden: 512         # predictor hidden dim
+    bcs_weight: 0.5          # weight of BCS anti-collapse term (secondary to pred loss)
+    # BCS (SIGReg) params
+    num_slices: 256
+    lmbd: 10.0
+    # Projector
+    proj: "512-512-256"
+
+optim:
+  lr: 0.001
+  weight_decay: 0.000001
+  epochs: 50                 # more epochs than SIGReg: EMA-based methods converge slower
+  warmup_epochs: 5
+  ema_momentum: 0.996        # start; annealed toward 1.0 via cosine schedule
