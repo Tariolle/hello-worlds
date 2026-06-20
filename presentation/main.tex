@@ -69,12 +69,10 @@
 \begin{frame}{Our contribution, in one slide}
   \small
   \begin{enumerate}
-    \item \textbf{A strong frozen baseline.} SIGReg-ambient JEPA matches the LeJEPA/Laya recipe's value on our (pipeline-helped) setup -- not a controlled head-to-head.
-    \item \textbf{Nothing beats it.} Ambient/tangent SIGReg \& PEIRA, Graph-JEPA, Fourier-JEPA -- none beats ambient SIGReg in balanced accuracy (gaps $\leq 0.013$).
-    \item \textbf{Latent geometry is the contribution.} Ours separates normal/abnormal $\sim$2$\times$ better than the random-init encoder$^{\ast}$, visualised with \textbf{de Surrel's AIRM Riemannian t-SNE} (the right metric for SPD/EEG covariances). Tangent sharpens the \emph{geometry} (best cov-latent silhouette), not the task.
-    \item \textbf{Rigor over spin.} The limits we report -- \emph{decodable $\ne$ clustered}, sustained vs transient, AIRM edge within noise. An honest negative beats a fragile positive.
+    \item \textbf{A strong frozen baseline.} SIGReg-ambient JEPA matches the LeJEPA/Laya recipe's value on our setup -- not a controlled head-to-head.
+    \item \textbf{Nothing beats it.} Ambient/tangent SIGReg \& PEIRA, Graph-JEPA, Fourier-JEPA -- none beats ambient SIGReg in balanced accuracy.
+    \item \textbf{Latent geometry is the contribution.} Visualised with \textbf{de Surrel's AIRM Riemannian t-SNE} (the right metric for SPD/EEG covariances).
   \end{enumerate}
-  {\tiny $^{\ast}$ \emph{Random-init encoder} = identical architecture, weights never trained, encoder frozen; only the linear probe is fit -- it isolates the SSL contribution.}
 \end{frame}
 
 % ==========================================================
@@ -85,9 +83,9 @@
   \vfill
   \begin{itemize}
     \item \textbf{EEG foundation models} are everywhere -- but most report \emph{fine-tuned} numbers. What survives when you \textbf{freeze} the encoder?
-    \item \textbf{Self-supervised JEPA} avoids collapse with an \emph{anti-collapse regulariser}. The EEG covariance lives on a curved \textbf{SPD manifold}, not in flat Euclidean space.
+    \item \textbf{JEPA} avoids collapse with an \emph{anti-collapse regulariser}. The EEG covariance lives on a curved \textbf{SPD manifold}, not in flat Euclidean space.
     \item \textbf{Our pre-registered hypothesis}: making anti-collapse \emph{geometry-aware} (act in the SPD \textbf{tangent}) and \emph{distribution-free} (\textbf{PEIRA}) beats a plain ambient baseline.
-    \item \textbf{What we ship}: a controlled study with an \emph{honest} answer -- a strong frozen probe, a clean negative result with a geometric mechanism, and label/data-efficiency curves.
+    \item \textbf{What we ship}: a controlled study with an \emph{honest} answer -- a strong frozen probe, a clean negative result with a geometric mechanism, and latent space visualizations.
   \end{itemize}
 \end{frame}
 
@@ -99,9 +97,9 @@
   \vspace{0.3em}
   \begin{itemize}
     \item \textbf{Task}: binary \emph{normal} vs \emph{abnormal} EEG, recording level.
-    \item \textbf{Signal}: \nchan{} channels @ \sfreq~Hz; we sample \winsec~s windows ($\winsamp$ samples), per-channel z-scored.
-    \item \textbf{Standard split}: \nrectr{} train / \nrecev{} eval recordings, \textbf{patient-disjoint} (\npattr{} vs \npatev{} patients, overlap $=0$ -- verified).
-    \item \textbf{Pretraining}: SSL reads only \emph{unlabeled} train recordings; labels enter at the probe alone.
+    \item \textbf{Signal}: \nchan{} channels @ \sfreq~Hz; \winsec~s windows ($\winsamp$ samples).
+    \item \textbf{Standard split}: \nrectr{} train / \nrecev{} eval recordings, \textbf{patient-disjoint}.
+    \item \textbf{Pretraining}: SSL reads only \emph{unlabeled} train recordings.
   \end{itemize}
 \end{frame}
 
@@ -112,6 +110,7 @@
 
 \begin{frame}{Two view and 1D convolutional encoder}
    \begin{center}
+\vspace{0.3em}
   \resizebox{0.97\textwidth}{!}{%
   \begin{tikzpicture}[
     block/.style={rectangle, draw, rounded corners, minimum height=1.0cm, minimum width=1.7cm, align=center, font=\scriptsize, line width=0.7pt},
@@ -126,9 +125,7 @@
     \node[block, fill=mcolor!18, draw=mcolor, right=0.5cm of e1] (p1) {Projector};
     \node[block, fill=mcolor!18, draw=mcolor, right=0.5cm of e2] (p2) {Projector};
     \node[reg, right=1.4cm of $(p1)!0.5!(p2)$] (reg) {Anti-collapse\\\textbf{reg}$(z_1,z_2)$};
-    \node[lbl, above=0.15cm of e1] {shared};
-    \node[lbl, above=0.15cm of p1] {$512$-$512$-$256$};
-    \node[lbl, below=0.15cm of e1] {ambient \emph{or} tangent};
+    \node[lbl, below=0.10cm of e1] {ambient \emph{or} tangent};
 
     \draw[arr] (v1) -- (e1);
     \draw[arr] (v2) -- (e2);
@@ -159,7 +156,6 @@
   \begin{itemize}
     \item \textbf{SIGReg} (LeJEPA/BCS): tests random 1-D slices for Gaussianity -- assumes an \emph{isotropic} target.
     \item \textbf{PEIRA}: distribution-free anti-collapse -- no target distribution to mis-specify.
-    \item \textbf{Hypothesis}: the geometry-aware / distribution-free cells (\texttt{C2}, \texttt{C4}) beat the ambient baseline \texttt{C1}.
     \item \textbf{GraphJEPA}
     \item \textbf{FourierJEPA}
   \end{itemize}
@@ -193,7 +189,7 @@
   \vfill
   \vspace*{0.05\textheight}                                   % 5% lower
   \begin{center}
-    \includegraphics[width=1.1\textwidth]{robustness_3seed.png}  % 10% bigger
+    \includegraphics[width=1\textwidth]{robustness_3seed.png}
   \end{center}
   \vfill
   \vspace*{-0.05\textheight}
@@ -208,7 +204,7 @@
 
 \begin{frame}{Manifold-aware latent geometry (AIRM vs Euclidean)}
   \vfill
-  \vspace*{0.05\textheight}                                   % 5% lower
+  \vspace*{0.00\textheight}               
   \begin{center}
     \includegraphics[width=\textwidth]{riemann_latent.png}      % bigger -- maxed to slide width
   \end{center}
@@ -217,50 +213,15 @@
 \end{frame}
 
 \begin{frame}{Manifold viz generalises across sustained TUH tasks}
-  \scriptsize
-  \begin{columns}[c]
-    \column{0.54\textwidth}\centering
-    \textbf{TUSZ -- 5 seizure classes; SIGReg-tangent separates best}\\[0.3em]
-    \includegraphics[width=\textwidth]{riemann_latent_tusz.png}
-    \column{0.46\textwidth}\centering
-    \begin{tabular}{lcc}
-      \toprule
-      task (\#cls) & sil$_{\text{Euc}}$ & sil$_{\text{AIRM}}$ \\
-      \midrule
-      TUAB (2, abnormal)  & 0.049 & \textbf{0.052} \\
-      TUSZ (5, seizure)   & 0.059 & \textbf{0.062} \\
-      \bottomrule
-    \end{tabular}
-    \vspace{0.9em}
-    \begin{itemize}
-      \item \textbf{AIRM $\ge$ Euclidean} wherever there is cluster structure (TUAB, TUSZ) -- de Surrel's Riemannian metric sharpens the embedding.
-      \item \textbf{SIGReg (ours) $>$ random-init} on every task, in both decodability and clustering.
-    \end{itemize}
-  \end{columns}
+  \vfill
+  \begin{center}
+    \includegraphics[width=\textwidth,height=0.9\textheight,keepaspectratio]{riemann_latent_tusz.png}
+  \end{center}
+  \vfill
 \end{frame}
 
 
 
-% ==========================================================
-\section{Limitations}
-% ==========================================================
-
-\begin{frame}{Limitation: transient events don't cluster (TUEV)}
-  \scriptsize
-  \begin{columns}[c]
-    \column{0.5\textwidth}\centering
-    \textbf{TUEV -- 6 event types (decodable, not clustered)}\\[0.3em]
-    \includegraphics[width=\textwidth]{riemann_latent_tuev_annot.png}
-    \column{0.5\textwidth}
-    \begin{itemize}
-      \item The manifold viz clusters \textbf{sustained} phenomena (abnormality, seizures), \emph{not} \textbf{transient} events -- TUEV's sub-second events are diluted by the 10\,s window.
-      \item \textbf{Silhouette $\ne$ decodability}: TUEV stays linearly decodable (probe BA ${\sim}0.40$, 1st- \emph{and} 2nd-order, $\gg$ chance 0.17); clustering fails, not the features.
-      \item At TUEV's silhouette ${\approx}0$ (Euc $-0.003$, AIRM $-0.004$), AIRM vs Euclidean is within noise.
-    \end{itemize}
-  \end{columns}
-  \vspace{0.3em}
-  {\tiny $^\dagger$ A \emph{label-optimal} projection (shrinkage-LDA, train$\to$eval) still does not cluster the classes (sup.\ silhouette ${\approx}0$) -- confirming \emph{decodable $\ne$ clustered}; the signal is a linear gradient, not separated modes.}
-\end{frame}
 
 % ==========================================================
 \section{Conclusion}
@@ -271,8 +232,7 @@
   \begin{itemize}
     \item A \textbf{controlled frozen-transfer study}, not a leaderboard entry.
     \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen.
-    \item \textbf{A clean, pre-registered negative result}: \emph{where} anti-collapse acts (ambient vs SPD-tangent) and \emph{which} regulariser do not change frozen-probe accuracy on TUAB -- with a geometric reason why.
-    \item \textbf{The null is multi-axis}: geometry/PEIRA help neither accuracy, nor calibration, nor robustness (3 seeds) -- and it holds even \emph{general}-pretrained (TUSZ $\to$ frozen TUAB, 0.814).
+    \item \textbf{The null is multi-axis}: geometry/PEIRA help neither accuracy, nor calibration, nor robustness (3 seeds).
     \item \textbf{The payoff is the latent geometry}: the frozen SPD latent is visibly \emph{organised} -- normal/abnormal and seizure classes form coherent structure -- and \textbf{de Surrel's AIRM Riemannian embedding sharpens it over the Euclidean view on every clustered task, most clearly for SIGReg}.
   \end{itemize}
   \vspace{1.0em}
