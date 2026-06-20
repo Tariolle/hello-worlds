@@ -27,5 +27,5 @@ CKPT=$(python -c "from omegaconf import OmegaConf;print(OmegaConf.load('$CFG').m
 echo "=== GENERAL pretrain (TUSZ, ex-TUAB-eval patients): $CFG -> $CKPT ==="
 python -u -m examples.eeg.main --fname "$CFG"
 echo "=== frozen linear-probe on TUAB (held-out patients) + random floor ==="
-python -u -m examples.eeg.eval --ckpt "$CKPT/latest.pth.tar" --data-root "$TUAB" --label-scheme tuab --floor
+python -u -m examples.eeg.eval --ckpt "$CKPT/latest.pth.tar" --data-root "/lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED" --label-scheme tuab --floor
 echo "TUSZ_GENERAL_DONE"
