@@ -48,7 +48,7 @@
 \title{Geometry-Aware JEPA for EEG}
 \subtitle{A controlled frozen-transfer study on TUAB}
 \author{Florent Tariolle \and Cl\'ement Genninasca \and Yoann Frayce \and Hippolyte du Pac de Marsoulies}
-\institute{Hack the World(s) -- EEG Track \quad$\cdot$\quad Team \textbf{Hello Worlds}}
+\institute{Hack the World(s) -- EEG Track \quad$\cdot$\quad Team \textbf{HelloWorlds}}
 \date{}
 
 % ============================================================
@@ -90,33 +90,6 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{The frozen-transfer protocol}
-  \begin{center}
-  \resizebox{\textwidth}{!}{%
-  \begin{tikzpicture}[
-    block/.style={rectangle, draw, rounded corners, minimum height=1.3cm, align=center, font=\small, line width=0.8pt},
-    arr/.style={-{Stealth[length=3mm]}, thick},
-    lbl/.style={font=\scriptsize, align=center},
-  ]
-    \node[block, fill=mcolor!15, draw=mcolor, minimum width=3.4cm] (pre) {\textbf{1. Pretrain}\\[0.2em]\scriptsize two-view JEPA\\\scriptsize \emph{unlabeled} TUAB-train};
-    \node[block, fill=vcolor!15, draw=vcolor, right=1.6cm of pre, minimum width=2.6cm] (frz) {\textbf{2. Freeze}\\[0.2em]\scriptsize encoder weights\\{\scriptsize\color{vcolor}no gradients}};
-    \node[block, fill=ccolor!20, draw=ccolor, right=1.6cm of frz, minimum width=3.4cm] (probe) {\textbf{3. Linear probe}\\[0.2em]\scriptsize logistic reg.\ on frozen reps\\\scriptsize held-out patients};
-
-    \draw[arr] (pre) -- node[above, lbl] {encoder $f_\theta$} (frz);
-    \draw[arr] (frz) -- node[above, lbl] {$f_{\theta^\star}$} (probe);
-    \node[lbl, right=0.7cm of probe] (out) {BalAcc\\AUROC};
-    \draw[arr] (probe) -- (out);
-  \end{tikzpicture}%
-  }
-  \end{center}
-
-  \vspace{0.6em}
-  \begin{itemize}
-    \item \textbf{Why frozen?} It measures the \emph{representation}, not the fine-tuner. Apples-to-apples across methods, and the regime where many published FMs quietly collapse.
-    \item \textbf{Selection rule}: probe hyper-parameters are fixed \emph{a priori} (\texttt{StandardScaler} $+$ balanced \texttt{LogisticRegression}, \texttt{max\_iter}=3000) -- \textbf{no} hyper-parameter search; the \nrecev-recording eval is touched \textbf{once} with a train-only scaler -- no selection leakage.
-  \end{itemize}
-\end{frame}
-
 % ==========================================================
 \section{Data}
 % ==========================================================
@@ -141,137 +114,13 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Two views for a JEPA invariance objective}
-  \vspace{0.2em}
-  Each SSL sample = one \winsec~s window, augmented \textbf{twice} independently into views $v_1, v_2$:
-  \vspace{0.4em}
-  \begin{center}
-  \resizebox{0.95\textwidth}{!}{%
-  \begin{tikzpicture}[
-    aug/.style={rectangle, draw=mcolor!70, fill=mcolor!10, rounded corners, minimum height=0.8cm, minimum width=2.7cm, align=center, font=\scriptsize, line width=0.6pt},
-    win/.style={rectangle, draw=gray, fill=gray!10, rounded corners, minimum height=1.0cm, minimum width=2.2cm, align=center, font=\small},
-    view/.style={rectangle, draw=vcolor, fill=vcolor!12, rounded corners, minimum height=0.9cm, minimum width=1.6cm, align=center, font=\small},
-    arr/.style={-{Stealth[length=2.5mm]}, thick},
-    lbl/.style={font=\tiny},
-  ]
-    \node[win] (w) {EEG window\\{\scriptsize $\nchan\times\winsamp$}};
-    \node[aug, above right=0.4cm and 1.4cm of w] (a1) {scale jitter $\pm$20\%\\noise $\sigma{=}0.1$};
-    \node[aug, below right=0.4cm and 1.4cm of w] (a2) {channel drop $p{=}0.2$\\time mask $\leq$20\%};
-    \node[view, right=1.4cm of a1] (v1) {$v_1$};
-    \node[view, right=1.4cm of a2] (v2) {$v_2$};
-
-    \draw[arr] (w.east) -- (a1.west);
-    \draw[arr] (w.east) -- (a2.west);
-    \draw[arr] (a1) -- (v1);
-    \draw[arr] (a2) -- (v2);
-  \end{tikzpicture}%
-  }
-  \end{center}
-  \vspace{0.3em}
-  \begin{itemize}
-    \item Augmentations (per channel, in z-scored units): amplitude scale jitter, additive Gaussian noise, channel dropout, contiguous time masking.
-    \item The encoder must map both views to \emph{predictable} representations -- collapse to a constant is the failure mode the regulariser prevents.
-  \end{itemize}
-\end{frame}
 
 % ==========================================================
 \section{Architecture}
 % ==========================================================
 
-\begin{frame}{Encoder: a 1D convolutional EEG backbone}
-  \begin{center}
-  \resizebox{\textwidth}{!}{%
-  \begin{tikzpicture}[
-    layer/.style={rectangle, draw=vcolor, fill=vcolor!8, rounded corners=2pt, align=center, font=\scriptsize, line width=0.5pt},
-    head/.style={rectangle, draw=vcolor, fill=vcolor!35, rounded corners=2pt, align=center, font=\scriptsize, line width=1pt},
-    dims/.style={font=\tiny, text=gray!70, align=center},
-    arr/.style={-{Stealth[length=1.8mm]}, thick, vcolor!60},
-    readout/.style={rectangle, draw, rounded corners=2pt, align=center, font=\scriptsize, line width=0.7pt},
-  ]
-    \node[layer, minimum width=1.5cm, minimum height=2.8cm] (in) {Input\\$\nchan\times\winsamp$};
-    \node[layer, minimum width=1.2cm, minimum height=2.3cm, right=0.45cm of in] (c1) {Conv s2\\64};
-    \node[layer, minimum width=1.2cm, minimum height=1.8cm, right=0.4cm of c1] (c2) {Conv s2\\128};
-    \node[layer, minimum width=1.2cm, minimum height=1.3cm, right=0.4cm of c2] (c3) {Conv s2\\128};
-    \node[layer, minimum width=1.2cm, minimum height=0.9cm, right=0.4cm of c3] (c4) {Conv s2\\256};
-    \node[head, minimum width=1.0cm, minimum height=0.9cm, right=0.4cm of c4] (h) {$1{\times}1$};
-
-    % two readouts
-    \node[readout, fill=vcolor!18, draw=vcolor, right=1.0cm of h, yshift=0.95cm, minimum width=2.6cm] (rep) {\textbf{represent}: pool over time\\$\to \mathbf{z}\in\mathbb{R}^{\dmodel}$ (ambient)};
-    \node[readout, fill=mcolor!18, draw=mcolor, right=1.0cm of h, yshift=-0.95cm, minimum width=2.6cm] (cov) {\textbf{cov\_features}: $1{\times}1\!\to\!\dcov$\\$\to$ SPD tangent};
-
-    \draw[arr] (in) -- (c1);
-    \draw[arr] (c1) -- (c2);
-    \draw[arr] (c2) -- (c3);
-    \draw[arr] (c3) -- (c4);
-    \draw[arr] (c4) -- (h);
-    \draw[arr] (h.east) -- (rep.west);
-    \draw[arr] (h.east) -- (cov.west);
-
-    \node[dims, below=0.1cm of in] {$T{=}\winsamp$};
-    \node[dims, below=0.1cm of c2] {kernel 7, BN, GELU};
-    \node[dims, below=0.1cm of c4] {$T'{=}\tprime$};
-    \node[dims, below=0.55cm of h] {$\dmodel\times\tprime$};
-  \end{tikzpicture}%
-  }
-  \end{center}
-  \vspace{0.2em}
-  \begin{center}\small
-    4 strided \texttt{Conv1d} blocks (kernel 7, stride 2): $T:\winsamp\!\to\!\tprime$, width $\nchan\!\to\!\dmodel$.\\
-    \textbf{One backbone, two readouts} -- the probe always reads the pooled \texttt{represent}.
-  \end{center}
-\end{frame}
-
-\begin{frame}{Where can anti-collapse act? Ambient vs SPD-tangent}
-  \vspace{0.2em}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-    \textbf{Ambient (Euclidean).}\\
-    Pool the feature map over time:
-    \[ \mathbf{z} = \tfrac{1}{T'}\textstyle\sum_t f_\theta(x)_{:,t} \in \mathbb{R}^{\dmodel}. \]
-    Regularise directly in $\mathbb{R}^{\dmodel}$. This is the \textbf{Laya-like} baseline.
-
-    \column{0.5\textwidth}
-    \textbf{Tangent (SPD log-Euclidean).}\\
-    Per-window temporal covariance of a $\dcov$-dim projection:
-    \[ C = \tfrac{1}{T'-1}\tilde F\tilde F^\top \in \mathrm{SPD}(\dcov), \]
-    \[ \mathbf{t} = \mathrm{vec}_{\sqrt 2}\big(\log_m C\big)\in\mathbb{R}^{\dcov(\dcov+1)/2}. \]
-    Regularise in the tangent at the identity.
-  \end{columns}
-
-  \vspace{0.6em}
-  \begin{alertblock}{The clean knob}
-    \footnotesize The probe reads the \emph{same} pooled representation in both cases. Only the \emph{space where anti-collapse is enforced} changes -- this isolates the effect of \textbf{geometry}, nothing else.
-  \end{alertblock}
-\end{frame}
-
-\begin{frame}{The ladder -- a $2\times2$ ($+$ reference) factorial}
-  \vspace{0.4em}
-  \begin{center}
-  \begin{tabular}{lcc}
-    \toprule
-    \textbf{regulariser} $\backslash$ \textbf{space} & \textbf{ambient} (Euclidean) & \textbf{tangent} (SPD) \\
-    \midrule
-    \textbf{VICReg} (variance/cov) & \texttt{C0} reference & --- \\
-    \textbf{SIGReg} (Gaussianity slices) & \texttt{C1} \emph{Laya-like baseline} & \texttt{C2} geometry-aware \\
-    \textbf{PEIRA} (distribution-free) & \texttt{C3} & \texttt{C4} \emph{ex-hypothesis} \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-
-  \vspace{0.8em}
-  \begin{itemize}
-    \item \textbf{SIGReg} (LeJEPA/BCS): tests random 1-D slices for Gaussianity -- assumes an \emph{isotropic} target.
-    \item \textbf{PEIRA}: distribution-free anti-collapse -- no target distribution to mis-specify.
-    \item \textbf{Hypothesis}: the geometry-aware / distribution-free cells (\texttt{C2}, \texttt{C4}) beat the ambient baseline \texttt{C1}.
-  \end{itemize}
-\end{frame}
-
-% ==========================================================
-\section{Training}
-% ==========================================================
-
-\begin{frame}{Two-view JEPA pretraining}
-  \begin{center}
+\begin{frame}{Two view and 1D convolutional encoder}
+   \begin{center}
   \resizebox{0.97\textwidth}{!}{%
   \begin{tikzpicture}[
     block/.style={rectangle, draw, rounded corners, minimum height=1.0cm, minimum width=1.7cm, align=center, font=\scriptsize, line width=0.7pt},
@@ -298,46 +147,47 @@
   \end{tikzpicture}%
   }
   \end{center}
-  \vspace{0.3em}
-  \begin{columns}[T]
-    \column{0.54\textwidth}
-    \begin{itemize}\footnotesize
-      \item AdamW, lr $10^{-3}$, weight decay $10^{-6}$
-      \item \batch{} batch, \epochs{} epochs, one B200 per run ($3$ cells/seeds fanned out concurrently)
-      \item Seeds $\{1, 1000, 10000\}$
-    \end{itemize}
-    \column{0.46\textwidth}
-    \begin{itemize}\footnotesize
-      \item Collapse monitored \emph{every epoch}: effective rank, per-dim std, off-diagonal covariance
-      \item No collapse: eff.\ rank $27\!\to\!65$
-    \end{itemize}
-  \end{columns}
 \end{frame}
 
-\begin{frame}{Collapse is the \#1 risk -- so we watched it}
+\begin{frame}{What we tried}
   \vspace{0.4em}
-  \begin{columns}[T]
-    \column{0.55\textwidth}
-    A degenerate encoder maps every window to (almost) the same vector. We log three diagnostics on each batch:
-    \begin{itemize}
-      \item \textbf{Effective rank} -- entropy of the singular-value spectrum; $\to 1$ means collapse.
-      \item \textbf{Per-dim std} -- $\to 0$ means collapse.
-      \item \textbf{Off-diagonal covariance} -- redundancy across dimensions.
-    \end{itemize}
-    \column{0.45\textwidth}
-    \begin{block}{Rule}
-      \footnotesize Kill flat runs early. The fix for collapse is \emph{more} regularisation, not less.
-      Every reported cell was checked non-degenerate (high eff.\ rank; PEIRA's $\mathrm{tr}_P$ rising).
-    \end{block}
-    \begin{exampleblock}{Jury asset}
-      \footnotesize ``We didn't just avoid collapse -- we \emph{visualised} it.''
-    \end{exampleblock}
-  \end{columns}
+  \begin{center}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{regulariser} $\backslash$ \textbf{space} & \textbf{ambient} (Euclidean) & \textbf{tangent} (SPD) \\
+    \midrule
+    \textbf{VICReg} (variance/cov) & \texttt{C0} reference & --- \\
+    \textbf{SIGReg} (Gaussianity slices) & \texttt{C1} \emph{Laya-like baseline} & \texttt{C2} geometry-aware \\
+    \textbf{PEIRA} (distribution-free) & \texttt{C3} & \texttt{C4} \emph{ex-hypothesis} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+
+  \vspace{0.8em}
+  \begin{itemize}
+    \item \textbf{SIGReg} (LeJEPA/BCS): tests random 1-D slices for Gaussianity -- assumes an \emph{isotropic} target.
+    \item \textbf{PEIRA}: distribution-free anti-collapse -- no target distribution to mis-specify.
+    \item \textbf{Hypothesis}: the geometry-aware / distribution-free cells (\texttt{C2}, \texttt{C4}) beat the ambient baseline \texttt{C1}.
+    \item \textbf{GraphJEPA}
+    \item \textbf{FourierJEPA}
+  \end{itemize}
 \end{frame}
+
 
 % ==========================================================
 \section{Results}
 % ==========================================================
+
+\begin{frame}{SSL training curves (all cells healthy)}
+  \vspace{-0.2em}
+  \begin{center}
+    \includegraphics[width=\textwidth]{loss_curves.png}
+  \end{center}
+  \vspace{-0.4em}
+  \begin{center}\footnotesize
+    30 epochs, TUAB pretrain (seed 1). All five cells converge; the \emph{shared} invariance loss falls everywhere; \textbf{no cell collapses} -- eff.\ rank rises throughout, feat.\ std stays ${\approx}1$ (PEIRA runs at lower std \emph{by design}, not collapse). PEIRA satisfies anti-collapse \emph{harder} (eff.\ rank ${\sim}3\times$ higher) yet wins nothing downstream: collapse is not the binding constraint on TUAB. Total loss is not comparable across objectives (PEIRA's log-det term goes negative) -- read per-curve shape.
+  \end{center}
+\end{frame}
 
 \begin{frame}{Frozen \& in-domain: we hold where frozen FMs fall}
   \vspace{-0.2em}
@@ -350,19 +200,6 @@
   \end{center}
 \end{frame}
 
-\begin{frame}{Apples-to-apples: it is not an in-domain artifact}
-  \vspace{0.4em}
-  \begin{itemize}
-    \item \textit{``You pretrained on TUAB, the FMs didn't''} -- the obvious attack on the in-domain number. So we ran the fair version.
-    \item Pretrain SIGReg on a \textbf{general TUH corpus} (\textbf{TUSZ} seizure; TUAB-eval patients \emph{excluded} $\Rightarrow$ patient-disjoint), freeze, linear-probe TUAB -- the FMs' own regime (general pretrain $\to$ frozen TUAB).
-    \item \textbf{Result: 0.814 BA / 0.889 AUROC} -- essentially equal to in-domain \ba{}. \textbf{The in-domain advantage is \emph{not} the driver.}
-  \end{itemize}
-  \vspace{0.3em}
-  \begin{alertblock}{Honest caveat}
-    \footnotesize TUSZ is general \emph{same-site} TUH (not multi-site like the FMs); single seed. We say ``match while frozen'', never ``beat''.
-  \end{alertblock}
-\end{frame}
-
 \begin{frame}{The value of self-supervision (label \& data efficiency)}
   \vspace{-0.2em}
   \begin{center}
@@ -372,48 +209,6 @@
   \begin{center}\footnotesize
     \textbf{(a)} The money plot: \emph{JEPA @ 25\% labels $\approx$ random-encoder @ 100\%} -- $\sim4\times$ label efficiency, $\sim{+}0.04$ BalAcc.\quad
     \textbf{(b)} Probe is stable down to small pretraining-data fractions.
-  \end{center}
-\end{frame}
-
-\begin{frame}{The honest denominator: a random encoder already scores \floorv{}}
-  \vspace{0.3em}
-  \begin{itemize}
-    \item In our pipeline, a \textbf{random (untrained) conv encoder} + linear probe reaches $\sim$\floorv{} BalAcc.
-    \item EEG abnormality is \emph{power-driven}; random conv filters preserve band power. The strong frozen numbers are largely \emph{architecture $+$ task}.
-    \item This floor is $\approx$ LaBraM-linear (0.795) / EEGPT-frozen (0.798) \emph{as self-reported by those papers} (different protocols); under the one apples-to-apples bench we cite (EEG-FM-Bench) the floor sits \emph{above} all frozen FMs.
-  \end{itemize}
-  \vspace{0.4em}
-  \begin{alertblock}{Why disclose it?}
-    \footnotesize It pre-empts ``is the SSL doing anything?'', reframes our contribution as a \textbf{quantified} SSL increment ($\sim{+}0.04$ over random, $\sim4\times$ label efficiency) -- and is itself a sharp benchmark insight: \emph{TUAB frozen-probe is easy for simple power features -- in our consistent linear-probe setup, several published ``foundation-model'' frozen numbers barely clear this random baseline.}
-  \end{alertblock}
-\end{frame}
-
-\begin{frame}{Where \ba{} sits -- TUAB standard 2717/276 split}
-  \vspace{0.2em}
-  \begin{center}
-  \footnotesize
-  \begin{tabular}{llcc}
-    \toprule
-    \textbf{Setting} & \textbf{Protocol} & \textbf{BA} & \textbf{AUROC} \\
-    \midrule
-    \rowcolor{vcolor!12}\textbf{Ours} & \textbf{in-domain SSL, frozen, linear probe} & \textbf{\ba{}} & $\sim$\aurocv{} \\
-    LaBraM-Base / -Huge & fine-tuned & 0.814 / 0.826 & 0.902 / 0.916 \\
-    CBraMod & fine-tuned & 0.829 & 0.923 \\
-    REVE-Base & fine-tuned & 0.832 & 0.925 \\
-    \midrule
-    LaBraM-Base & linear probe & 0.795 & 0.884 \\
-    REVE & linear probe & 0.810--0.821 & --- \\
-    EEGPT & frozen / linear-probe-style & 0.798 & 0.872 \\
-    EEG2Rep & linear probe & 0.766 (acc) & 0.832 \\
-    BIOT & linear probe & 0.751 (acc) & 0.829 \\
-    \midrule
-    classical Riemannian (Gemein 2020) & cov $+$ tangent $+$ classifier & $\sim$0.86 (acc) & --- \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-  \vspace{0.3em}
-  \begin{center}\footnotesize
-    \textbf{Top of the frozen linear-probe results}; lower edge of the \emph{fine-tuned} BA band. AUROC $\sim$\aurocv{} above BIOT/EEGPT, below CBraMod/REVE. \textbf{Competitive at the operating point -- not SOTA.}
   \end{center}
 \end{frame}
 
@@ -431,264 +226,15 @@
   \end{itemize}
 \end{frame}
 
-% ==========================================================
-\section{Insight}
-% ==========================================================
-
-\begin{frame}{The result we pre-registered against: a clean null}
-  \vspace{0.3em}
-  3-seed mean balanced accuracy, $\{1,1000,10000\}$:
-  \begin{center}
-  \begin{tabular}{lcc}
-    \toprule
-    \textbf{reg} $\backslash$ \textbf{space} & \textbf{ambient} & \textbf{tangent} \\
-    \midrule
-    VICReg & 0.814 & --- \\
-    \rowcolor{vcolor!12} SIGReg & \textbf{0.819} (locked) & 0.820$^\dagger$ \\
-    PEIRA  & 0.815 & 0.807 \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-  \vspace{0.5em}
-  \begin{itemize}
-    \item Every cell $\approx 0.82 \pm$ seed noise; per-cell ranges overlap heavily. \textbf{No effect of regulariser, no effect of space, no interaction.}
-    \item Our hypothesis (\emph{geometry / PEIRA win}) is \textbf{falsified}. We \emph{locked} ambient SIGReg and kept the $2\times2$ as the published ablation.
-  \end{itemize}
-  \vspace{0.2em}
-  {\scriptsize $^\dagger$ caveat: SIGReg's slice schedule is seeded per-step, not per-run, so its ``tightest variance'' is partly an artifact -- we do not lean on it (see appendix).}
-\end{frame}
-
-\begin{frame}{Why the naive tangent is mis-specified (the mechanism)}
-  \vspace{0.3em}
-  \begin{columns}[T]
-    \column{0.54\textwidth}
-    On the SPD manifold, the natural Gaussian is a \textbf{wrapped Gaussian} -- \emph{non-isotropic} by construction (de Surrel et al.\ 2025, Def.\ 4.1: $t\sim\mathcal N(\mu,\Sigma)$ with full $\Sigma$, not $\sigma^2 I$).
-
-    \vspace{0.4em}
-    SIGReg forces \emph{isotropy} ($\mathcal N(0,I)$) where the geometry induces a non-isotropic covariance -- it fights the structure that carries the signal.
-
-    \column{0.46\textwidth}
-    \begin{center}
-    \footnotesize
-    \begin{tabular}{lll}
-      \toprule
-       & \textbf{ours} & \textbf{principled} \\
-      \midrule
-      target & isotropic & wrapped, full $\Sigma$ \\
-      base pt & identity & Fr\'echet mean \\
-      \bottomrule
-    \end{tabular}
-    \end{center}
-    \vspace{0.3em}
-    \begin{block}{Honest framing}
-      \footnotesize Future-work \emph{motivation}, not a validated mechanism: at $n{=}3$ the tangent effect is null, so our data \emph{cannot} confirm the wrapped-Gaussian prediction.
-    \end{block}
-  \end{columns}
-  \vspace{0.3em}
-  \begin{center}\footnotesize
-    And the principled object is \emph{already} our Riemannian baseline ($\riem \ll 0.82$): the linear probe re-derives second-order tangent structure for free, so best case for tangent SSL is a \emph{tie}.
-  \end{center}
-\end{frame}
-
-\begin{frame}{We \emph{measured} the geometry -- not just hid it}
-  \vspace{0.4em}
-  \begin{itemize}
-    \item The probe reads the first-order \texttt{represent}; the SPD-tangent lives \emph{only} in the SSL loss. So we exposed the \textbf{learned tangent} to the probe directly.
-    \item Learned-tangent probe: \textbf{0.79} BA (SIGReg-tangent 0.790 $>$ its random-tangent floor 0.776) -- a \emph{real but weak} second-order signal, \textbf{below} the first-order rep (0.82).
-    \item TUAB rewards first-order power; the second-order tangent caps $\sim$0.78--0.80 (cf.\ MENDR 0.78--0.80, Riemann \riem). \textbf{The tangent is not broken -- it is capped by the task.}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{What we claim -- and what we don't}
-  \vspace{0.4em}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-    \textbf{\textcolor{ccolor!60!black}{DO claim}}
-    \begin{itemize}\footnotesize
-      \item Strongest among published \emph{frozen}/linear-probe TUAB baselines; inside the fine-tuned BA band.
-      \item A clean \textbf{3-seed null} on geometry/PEIRA, with a geometric mechanism + precedent.
-      \item In-domain SSL is the (disclosed) reason it is strong: $\sim{+}0.04$ over random, $\sim4\times$ label efficiency.
-    \end{itemize}
-    \column{0.5\textwidth}
-    \textbf{\textcolor{insared}{DON'T claim}}
-    \begin{itemize}\footnotesize
-      \item \sout{SOTA on TUAB} -- AUROC below best; preprocessing differs.
-      \item \sout{We beat CBraMod/LaBraM} -- they are fine-tuned; say ``\emph{match while frozen}''.
-      \item \sout{Tangent-SPD is useless for EEG} -- only ``no benefit in our TUAB frozen pilot''.
-      \item \sout{TUAB is saturated at $X$} -- ceiling unknown.
-    \end{itemize}
-  \end{columns}
-  \vspace{0.4em}
-  \begin{exampleblock}{The boxed claim}
-    \footnotesize Domain-matched JEPA pretraining yields a \emph{frozen} encoder whose linear probe (\ba{} BA / $\sim$\aurocv{} AUROC, 3 seeds) is competitive with the TUAB \emph{fine-tuning} literature and stronger than typical \emph{frozen}-probe baselines. In a controlled $2\times2$ ablation, neither PEIRA nor a geometry-aware tangent improved over ambient SIGReg.
-  \end{exampleblock}
-\end{frame}
-
-% ==========================================================
-\section{Limitations \& Future Work}
-% ==========================================================
-
-\begin{frame}{Limitations \& Future Work}
-  \vspace{0.6em}
-  \begin{itemize}
-    \item \textbf{Single dataset.} Specialization $\neq$ generality. The honest generality test is frozen cross-dataset transfer (TUEV/Sleep-EDF) -- started, but left as future work rather than over-claimed.
-    \item \textbf{Underpowered null.} $n{=}3$ seeds; the inter-cell gaps ($\leq 0.013$) are below a plausible eval bootstrap CI ($\pm0.02$--$0.03$, not yet computed). The honest statement is ``\emph{benchmark-resolution-limited}'', not ``geometry is dead''.
-    \item \textbf{The principled fix.} A wrapped-Gaussian SIGReg on the \emph{channel} covariance, AIRM tangent at the running Fr\'echet mean -- $\sim$40 LOC $+$ one re-pretrain, with real \texttt{eigh}-backward numerical risk.
-    \item \textbf{Where geometry should pay off.} Robustness, calibration, and transfer under montage/threshold shift -- \emph{not} a balanced-accuracy race.
-  \end{itemize}
-\end{frame}
-
-% ==========================================================
-\section{Credit \& honest scope}
-% ==========================================================
-
-\begin{frame}{Credit \& honest scope: what 24h bought (and what it didn't)}
-  \footnotesize
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-    \textbf{Built on \texttt{eb\_jepa} -- and it carries the baseline.}
-    \begin{itemize}
-      \item The \emph{EEG dataloader/preprocessing} and the \emph{SSL loss primitives} (VICReg, SIGReg/BCS) are \texttt{eb\_jepa} (the handed framework). The \textbf{encoder architecture and the SSL training loop are ours}; our work is an \emph{additive} comparative study on top -- geometry/PEIRA cells, reliability axes, latent viz.
-      \item \textbf{The signal preprocessing is the organizers'} (19\,ch, 200\,Hz, bandpass$+$notch); \texttt{eb\_jepa}'s dataloader $+$ loss primitives make TUAB tractable under a \emph{frozen} probe. We claim the \emph{study}, not the raw accuracy.
-    \end{itemize}
-    \column{0.5\textwidth}
-    \textbf{We do \emph{not} claim SOTA.}
-    \begin{itemize}
-      \item 24h $=$ a frozen linear-probe study on \emph{one} task (TUAB), TUAB-tuned pipeline. Cross-model numbers are \textbf{indicative, not controlled re-runs} of others' pipelines.
-      \item Laya (recent LeJEPA SOTA): \textbf{29{,}109\,h / 20{,}940 subjects / 17 montages / 14 tasks} under the \emph{same} frozen contract -- a different league of \emph{generality}. Our single-task value $\neq$ their generalist value.
-      \item \textbf{What 24h bought}: a clean multi-axis \emph{negative}, \emph{healthy-training} evidence it is not a broken run, and a \emph{manifold-aware} latent viz (AIRM Riemannian t-SNE) -- a methods contribution, not a leaderboard claim.
-    \end{itemize}
-  \end{columns}
-\end{frame}
-
-% ==========================================================
-\section{Conclusion}
-% ==========================================================
-
-\begin{frame}{Conclusion}
-  \vspace{0.8em}
-  \begin{itemize}
-    \item A \textbf{controlled frozen-transfer study}, not a leaderboard entry.
-    \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen -- with the random-encoder floor honestly disclosed.
-    \item \textbf{A clean, pre-registered negative result}: \emph{where} anti-collapse acts (ambient vs SPD-tangent) and \emph{which} regulariser do not change frozen-probe accuracy on TUAB -- with a geometric reason why.
-    \item \textbf{The null is multi-axis}: geometry/PEIRA help neither accuracy, nor calibration, nor robustness (3 seeds) -- and it holds even \emph{general}-pretrained (TUSZ $\to$ frozen TUAB, 0.814).
-    \item \textbf{Honesty as the headline}: an honest negative beats a fragile positive.
-  \end{itemize}
-  \vspace{1.0em}
-  \begin{center}
-    \large Built on a trimmed \texttt{eb\_jepa} vendor. \quad Team \textbf{Hello Worlds}.
-  \end{center}
-\end{frame}
-
-% ==========================================================
-\section{References}
-% ==========================================================
-
-\begin{frame}[allowframebreaks]{References}
-  \small
-  \begin{itemize}
-    \item Panchavati, S.\ et al.\ (2026). \href{https://arxiv.org/abs/2603.16281}{\textit{Laya: a LeJEPA approach to EEG via latent prediction over reconstruction}}. Preprint. \emph{(our ambient baseline)}
-    \item de Surrel, T., Lotte, F., Chevallier, S.\ \& Yger, F.\ (2025). \href{https://arxiv.org/abs/2502.01512}{\textit{Wrapped Gaussian on the manifold of Symmetric Positive Definite Matrices}}. Preprint.
-    \item de Surrel, T.\ \textit{r\_tSNE\_in\_C} -- Riemannian t-SNE on SPD matrices (AIRM). \href{https://github.com/thibaultdesurrel/r_tSNE_in_C}{github.com/thibaultdesurrel/r\_tSNE\_in\_C}. \emph{(our manifold-aware latent viz)}
-    \item Arbel, M., Terver, B.\ \& Ponce, J.\ (2026). \href{https://arxiv.org/abs/2605.17671}{\textit{PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment}}. Preprint.
-    \item \href{https://arxiv.org/abs/2501.08139}{\textit{EEG-ReMinD: Riemannian SPD self-supervised EEG}} (2025). Preprint. \emph{(reconstruction, not JEPA)}
-    \item LeCun, Y.\ (2022). \textit{A Path Towards Autonomous Machine Intelligence (JEPA)}. OpenReview.
-    \item Jiang, W.-B.\ et al.\ (2024). \href{https://arxiv.org/abs/2405.18765}{\textit{LaBraM: Large Brain Model for EEG}}. ICLR.
-    \item Wang, J.\ et al.\ (2024). \href{https://arxiv.org/abs/2412.07236}{\textit{CBraMod: Criss-Cross Brain Foundation Model}}. Preprint.
-    \item Yang, C.\ et al.\ (2023). \href{https://arxiv.org/abs/2305.10351}{\textit{BIOT: Biosignal Transformer}}. NeurIPS.
-    \item Wang, G.\ et al.\ (2024). \href{https://openreview.net/forum?id=lvS2b8CjG5}{\textit{EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals}}. NeurIPS.
-    \item Foumani, N.\ et al.\ (2024). \href{https://arxiv.org/abs/2402.17772}{\textit{EEG2Rep: Enhancing Self-supervised EEG Representation Through Informative Masked Inputs}}. KDD.
-    \item Gemein, L.\ et al.\ (2020). \href{https://arxiv.org/abs/2002.05115}{\textit{Machine-learning-based diagnostics of EEG pathology}} (Riemannian baseline). NeuroImage.
-    \item Bardes, A., Ponce, J.\ \& LeCun, Y.\ (2022). \href{https://arxiv.org/abs/2105.04906}{\textit{VICReg}}. ICLR.
-  \end{itemize}
-\end{frame}
 
 % ==========================================================
 \appendix
-\section{Appendix}
+\section{Clustering}
 % ==========================================================
 
-\begin{frame}{Appendix: encoder block + readouts}
-  \footnotesize
-  Each backbone block: \texttt{Conv1d}(kernel 7, stride 2) $\to$ \texttt{BatchNorm} $\to$ \texttt{GELU}. Widths $\nchan\!\to\!64\!\to\!128\!\to\!128\!\to\!\dmodel$; a $1{\times}1$ head fixes the channel dim. Time $T:\winsamp\!\to\!\tprime$.
-  \vspace{0.4em}
-  \begin{itemize}
-    \item \texttt{represent(x)} $=$ time-pooled feature map $\in\mathbb{R}^{\dmodel}$ -- the \textbf{only} thing the probe ever reads.
-    \item \texttt{cov\_features(x)} $=$ a $1{\times}1$ projection to $\dcov$ channels, fed to the tangent map. $\dcov < \tprime$ keeps the covariance full-rank.
-    \item Projector for SSL: \texttt{512-512-256} MLP (Linear + BN + GELU), discarded after pretraining.
-  \end{itemize}
-\end{frame}
 
-\begin{frame}{Appendix: the SPD-tangent construction}
-  \footnotesize
-  From the feature map $F\in\mathbb{R}^{\dcov\times T'}$ (centred over time):
-  \begin{align*}
-    C &= \tfrac{1}{T'-1}\,F F^\top + \varepsilon I \in \mathrm{SPD}(\dcov) &&\text{(temporal covariance)}\\
-    \log_m C &= U \,\mathrm{diag}(\log \lambda_i)\, U^\top &&\text{(via eigendecomposition)}\\
-    \mathbf{t} &= \mathrm{vec}_{\sqrt 2}(\log_m C) \in \mathbb{R}^{\dcov(\dcov+1)/2} &&\text{(off-diagonals scaled by }\sqrt2)
-  \end{align*}
-  \vspace{0.2em}
-  \begin{itemize}
-    \item The $\sqrt2$ weighting makes the Euclidean norm of $\mathbf t$ equal the Frobenius norm of $\log_m C$ -- the correct isometry for both LE and AIRM \emph{at the identity}.
-    \item At the identity base point, AIRM-$\log$ $\equiv$ Log-Euclidean: the metric is \emph{not} an independent axis. Mis-specification $=$ isotropic target $+$ identity base point (two axes, not three).
-    \item \texttt{eigh}-backward numerics: $\varepsilon$-clamped eigenvalues, small $\dcov$, float-safe; verified finite on GPU in the smoke test.
-  \end{itemize}
-\end{frame}
 
-\begin{frame}{Appendix: collapse diagnostics}
-  \footnotesize
-  On a batch of embeddings $Z\in\mathbb{R}^{N\times D}$ (mean-centred), with singular values $s_i$ and $p_i = s_i/\sum_j s_j$:
-  \[ \text{eff.\ rank} = \exp\!\Big(-\textstyle\sum_i p_i \log p_i\Big), \quad \text{feat.\ std} = \overline{\mathrm{std}(Z_{:,d})}, \quad \text{off-diag} = \tfrac{\|\,\mathrm{Cov}(Z) - \mathrm{diag}\,\|_F}{\sqrt{D(D-1)}}. \]
-  \begin{itemize}
-    \item Collapse $\Rightarrow$ eff.\ rank $\to 1$, feat.\ std $\to 0$. Healthy SIGReg-ambient run: eff.\ rank $27\to65$ over training.
-    \item For PEIRA, the loss value is a \emph{surrogate-gradient} number (can be negative, non-monotone). Only $\mathrm{tr}_P$ and eff.\ rank are valid progress signals.
-    \item Per-cell non-degeneracy was audited before averaging -- tangent-PEIRA (0.807) was confirmed healthy, not a partial collapse.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Appendix: SSL training curves (all cells healthy)}
-  \vspace{-0.2em}
-  \begin{center}
-    \includegraphics[width=\textwidth]{loss_curves.png}
-  \end{center}
-  \vspace{-0.4em}
-  \begin{center}\footnotesize
-    30 epochs, TUAB pretrain (seed 1). All five cells converge; the \emph{shared} invariance loss falls everywhere; \textbf{no cell collapses} -- eff.\ rank rises throughout, feat.\ std stays ${\approx}1$ (PEIRA runs at lower std \emph{by design}, not collapse). PEIRA satisfies anti-collapse \emph{harder} (eff.\ rank ${\sim}3\times$ higher) yet wins nothing downstream: collapse is not the binding constraint on TUAB. Total loss is not comparable across objectives (PEIRA's log-det term goes negative) -- read per-curve shape.
-  \end{center}
-\end{frame}
-
-\begin{frame}{Appendix: evaluation protocol}
-  \footnotesize
-  \begin{itemize}
-    \item \textbf{Feature extraction}: 16 evenly-spaced \winsec~s windows per recording $\to$ pooled \texttt{represent} $\to$ averaged to a recording-level vector.
-    \item \textbf{Probe}: \texttt{StandardScaler} $+$ logistic regression on the frozen features. \textbf{Frozen encoder, no fine-tuning.}
-    \item \textbf{Split}: train recordings fit the probe; the \nrecev{}-recording eval (held-out patients) is scored \textbf{once}. Probe hyper-parameters are fixed \emph{a priori} (no search); a patient-disjoint dev-split for any future selection is specified but not yet wired in.
-    \item \textbf{Metrics}: balanced accuracy (primary) $+$ AUROC, on the full \nrectr/\nrecev{} split.
-    \item \textbf{Floor}: an untrained random encoder, same probe, gives the $\sim$\floorv{} honest denominator.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Appendix: label-efficiency numbers}
-  \footnotesize
-  Balanced accuracy vs.\ \% of TRAIN labels used to fit the probe (frozen encoder fixed):
-  \begin{center}
-  \begin{tabular}{lccccccc}
-    \toprule
-    \% labels & 1 & 2 & 5 & 10 & 25 & 50 & 100 \\
-    \midrule
-    \textbf{frozen JEPA} & 0.668 & 0.701 & 0.753 & 0.768 & \textbf{0.799} & 0.816 & 0.825 \\
-    random encoder       & 0.677 & 0.647 & 0.725 & 0.735 & 0.778 & 0.773 & \textbf{0.790} \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-  \vspace{0.4em}
-  \begin{itemize}
-    \item \textbf{JEPA @ 25\% labels (0.799) $\approx$ random @ 100\% (0.790)} -- the $\sim4\times$ label-efficiency claim.
-    \item The SSL increment ($\sim{+}0.04$ at full labels) is small but consistent, and corroborated by a $\sim2\times$ higher latent-space silhouette (appendix figure).
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Appendix: frozen latent space (ours vs random vs geometry)}
+\begin{frame}{Frozen latent space (ours vs random vs geometry)}
   \vspace{-0.2em}
   \begin{center}
     \includegraphics[width=\textwidth]{latent_compare.png}
@@ -766,3 +312,61 @@
 \end{frame}
 
 \end{document}
+
+
+
+% ==========================================================
+\section{Limitations \& Future Work}
+% ==========================================================
+
+\begin{frame}{Limitations \& Future Work}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item \textbf{Single dataset.} Specialization $\neq$ generality. The honest generality test is frozen cross-dataset transfer (TUEV/Sleep-EDF) -- started, but left as future work rather than over-claimed.
+    \item \textbf{Underpowered null.} $n{=}3$ seeds; the inter-cell gaps ($\leq 0.013$) are below a plausible eval bootstrap CI ($\pm0.02$--$0.03$, not yet computed). The honest statement is ``\emph{benchmark-resolution-limited}'', not ``geometry is dead''.
+    \item \textbf{The principled fix.} A wrapped-Gaussian SIGReg on the \emph{channel} covariance, AIRM tangent at the running Fr\'echet mean -- $\sim$40 LOC $+$ one re-pretrain, with real \texttt{eigh}-backward numerical risk.
+    \item \textbf{Where geometry should pay off.} Robustness, calibration, and transfer under montage/threshold shift -- \emph{not} a balanced-accuracy race.
+  \end{itemize}
+\end{frame}
+
+% ==========================================================
+\section{Conclusion}
+% ==========================================================
+
+\begin{frame}{Conclusion}
+  \vspace{0.8em}
+  \begin{itemize}
+    \item A \textbf{controlled frozen-transfer study}, not a leaderboard entry.
+    \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen -- with the random-encoder floor honestly disclosed.
+    \item \textbf{A clean, pre-registered negative result}: \emph{where} anti-collapse acts (ambient vs SPD-tangent) and \emph{which} regulariser do not change frozen-probe accuracy on TUAB -- with a geometric reason why.
+    \item \textbf{The null is multi-axis}: geometry/PEIRA help neither accuracy, nor calibration, nor robustness (3 seeds) -- and it holds even \emph{general}-pretrained (TUSZ $\to$ frozen TUAB, 0.814).
+    \item \textbf{Honesty as the headline}: an honest negative beats a fragile positive.
+  \end{itemize}
+  \vspace{1.0em}
+  \begin{center}
+    \large Built on a trimmed \texttt{eb\_jepa} vendor. \quad Team \textbf{Hello Worlds}.
+  \end{center}
+\end{frame}
+
+% ==========================================================
+\section{References}
+% ==========================================================
+
+\begin{frame}[allowframebreaks]{References}
+  \small
+  \begin{itemize}
+    \item Panchavati, S.\ et al.\ (2026). \href{https://arxiv.org/abs/2603.16281}{\textit{Laya: a LeJEPA approach to EEG via latent prediction over reconstruction}}. Preprint. \emph{(our ambient baseline)}
+    \item de Surrel, T., Lotte, F., Chevallier, S.\ \& Yger, F.\ (2025). \href{https://arxiv.org/abs/2502.01512}{\textit{Wrapped Gaussian on the manifold of Symmetric Positive Definite Matrices}}. Preprint.
+    \item de Surrel, T.\ \textit{r\_tSNE\_in\_C} -- Riemannian t-SNE on SPD matrices (AIRM). \href{https://github.com/thibaultdesurrel/r_tSNE_in_C}{github.com/thibaultdesurrel/r\_tSNE\_in\_C}. \emph{(our manifold-aware latent viz)}
+    \item Arbel, M., Terver, B.\ \& Ponce, J.\ (2026). \href{https://arxiv.org/abs/2605.17671}{\textit{PEIRA: Learning Predictive Encoders through Inter-View Regressor Alignment}}. Preprint.
+    \item \href{https://arxiv.org/abs/2501.08139}{\textit{EEG-ReMinD: Riemannian SPD self-supervised EEG}} (2025). Preprint. \emph{(reconstruction, not JEPA)}
+    \item LeCun, Y.\ (2022). \textit{A Path Towards Autonomous Machine Intelligence (JEPA)}. OpenReview.
+    \item Jiang, W.-B.\ et al.\ (2024). \href{https://arxiv.org/abs/2405.18765}{\textit{LaBraM: Large Brain Model for EEG}}. ICLR.
+    \item Wang, J.\ et al.\ (2024). \href{https://arxiv.org/abs/2412.07236}{\textit{CBraMod: Criss-Cross Brain Foundation Model}}. Preprint.
+    \item Yang, C.\ et al.\ (2023). \href{https://arxiv.org/abs/2305.10351}{\textit{BIOT: Biosignal Transformer}}. NeurIPS.
+    \item Wang, G.\ et al.\ (2024). \href{https://openreview.net/forum?id=lvS2b8CjG5}{\textit{EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals}}. NeurIPS.
+    \item Foumani, N.\ et al.\ (2024). \href{https://arxiv.org/abs/2402.17772}{\textit{EEG2Rep: Enhancing Self-supervised EEG Representation Through Informative Masked Inputs}}. KDD.
+    \item Gemein, L.\ et al.\ (2020). \href{https://arxiv.org/abs/2002.05115}{\textit{Machine-learning-based diagnostics of EEG pathology}} (Riemannian baseline). NeuroImage.
+    \item Bardes, A., Ponce, J.\ \& LeCun, Y.\ (2022). \href{https://arxiv.org/abs/2105.04906}{\textit{VICReg}}. ICLR.
+  \end{itemize}
+\end{frame}
