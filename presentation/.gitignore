@@ -1,0 +1,13 @@
+# LaTeX build artifacts — main.pdf is intentionally tracked, the rest are not.
+*.aux
+*.log
+*.nav
+*.snm
+*.out
+*.toc
+*.vrb
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.synctex.gz
