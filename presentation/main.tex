@@ -13,7 +13,7 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning, fit, arrows.meta, calc, decorations.pathreplacing, backgrounds}
 
-\graphicspath{{./figures/}{../results/label_eff/}{../results/benchmark/}{../results/robustness/}{../results/calibration/}{../results/latent/}{../}}
+\graphicspath{{./figures/}{../results/label_eff/}{../results/benchmark/}{../results/robustness/}{../results/calibration/}{../results/latent/}{../results/loss/}{../}}
 
 \definecolor{insared}{HTML}{E51F13}
 \definecolor{vcolor}{HTML}{2E86AB}   % encoder / our method (blue)
@@ -612,6 +612,17 @@
   \end{itemize}
 \end{frame}
 
+\begin{frame}{Appendix: SSL training curves (all cells healthy)}
+  \vspace{-0.2em}
+  \begin{center}
+    \includegraphics[width=\textwidth]{loss_curves.png}
+  \end{center}
+  \vspace{-0.4em}
+  \begin{center}\footnotesize
+    30 epochs, TUAB pretrain (seed 1). All five cells converge; the \emph{shared} invariance loss falls everywhere; \textbf{no cell collapses} -- eff.\ rank rises throughout, feat.\ std stays ${\approx}1$ (PEIRA runs at lower std \emph{by design}, not collapse). PEIRA satisfies anti-collapse \emph{harder} (eff.\ rank ${\sim}3\times$ higher) yet wins nothing downstream: collapse is not the binding constraint on TUAB. Total loss is not comparable across objectives (PEIRA's log-det term goes negative) -- read per-curve shape.
+  \end{center}
+\end{frame}
+
 \begin{frame}{Appendix: evaluation protocol}
   \footnotesize
   \begin{itemize}
@@ -639,18 +650,18 @@
   \vspace{0.4em}
   \begin{itemize}
     \item \textbf{JEPA @ 25\% labels (0.799) $\approx$ random @ 100\% (0.790)} -- the $\sim4\times$ label-efficiency claim.
-    \item The SSL increment ($\sim{+}0.04$ at full labels) is small but consistent, and corroborated by a $\sim4$--$5\times$ higher latent-space silhouette (appendix figure).
+    \item The SSL increment ($\sim{+}0.04$ at full labels) is small but consistent, and corroborated by a $\sim2\times$ higher latent-space silhouette (appendix figure).
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Appendix: frozen latent space (JEPA vs random)}
+\begin{frame}{Appendix: frozen latent space (ours vs random vs geometry)}
   \vspace{-0.2em}
   \begin{center}
-    \includegraphics[height=0.78\textheight]{latent_space.png}
+    \includegraphics[width=\textwidth]{latent_compare.png}
   \end{center}
   \vspace{-0.3em}
   \begin{center}\footnotesize
-    PCA / t-SNE of frozen features on the eval set. JEPA separates normal/abnormal more than the random encoder (silhouette $\sim4$--$5\times$ higher) -- both modest, consistent with the $\sim{+}0.04$ probe gain.
+    t-SNE and UMAP of frozen \texttt{represent} features on the eval set -- same frozen ambient readout for all four. Silhouette (full-dim, the actual metric): SIGReg-ambient (ours) $0.051$ vs random-init $0.021$ ($\sim2\times$); SPD-tangent and PEIRA sit \emph{between} -- geometry does not beat ambient. All modest, consistent with the $\sim{+}0.04$ probe gain. (The 2-D maps are illustrative; the random-init floor has no fixed seed, so it varies $0.021$--$0.027$ run-to-run.)
   \end{center}
 \end{frame}
 
