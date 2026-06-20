@@ -69,23 +69,51 @@ def extract_features(encoder, split, device, data_cfg=None, pool="mean",
     return X, y
 
 
-def _safe_auroc(y_true, proba, labels):
-    """One-vs-rest macro AUROC, or None when it is undefined.
+def _aligned_proba(clf, raw_proba, labels):
+    """Expand ``clf.predict_proba`` columns onto the explicit 0..K-1 label axis.
 
-    Returns None (instead of raising) when a class in ``labels`` has no samples in
-    ``y_true`` or the probability columns don't line up — e.g. a diagnosis with no
-    eval recordings. The whole AUROC is then dropped rather than computed over the
-    present classes, so read None as 'not reported', not zero.
+    predict_proba columns follow ``clf.classes_`` (only classes present in train).
+    This maps them back to the full ``labels`` axis so a class learned out of order
+    or absent from train lands in the right column (or a zero column), rather than
+    the binary ``proba[:, 1]`` / multiclass ``labels`` paths silently assuming the
+    columns are contiguous 0..K-1. Mirrors baseline_riemann._aligned_proba.
+    """
+    proba = np.zeros((raw_proba.shape[0], len(labels)), dtype=raw_proba.dtype)
+    label_to_col = {int(label): i for i, label in enumerate(labels)}
+    for src_col, cls in enumerate(clf.classes_):
+        dst_col = label_to_col.get(int(cls))
+        if dst_col is not None:
+            proba[:, dst_col] = raw_proba[:, src_col]
+    return proba
+
+
+def _safe_auroc(y_true, proba, labels, scored_labels=None):
+    """Macro one-vs-rest AUROC over classes both present in ``y_true`` and learned
+    by the classifier; a class with no eval support or never learned (all-zero
+    score column) is dropped from both axes instead of dragging the macro toward
+    chance. Returns None when fewer than two scorable classes remain or the metric
+    is undefined — read None as 'not reported', not zero.
     """
     from sklearn.metrics import roc_auc_score
 
+    y_true = np.asarray(y_true)
+    labels = np.asarray(labels)
+    scored = {int(s) for s in (labels if scored_labels is None else scored_labels)}
+    keep = [int(lab) for lab in labels if int(lab) in scored and (y_true == lab).sum() > 0]
+    if len(keep) < 2:
+        return None
+    col_of = {int(lab): i for i, lab in enumerate(labels)}
+    cols = [col_of[lab] for lab in keep]
+    mask = np.isin(y_true, keep)
+    y_k, p_k = y_true[mask], proba[np.ix_(mask, cols)]
     try:
-        if len(labels) == 2:
-            return round(float(roc_auc_score(y_true, proba[:, 1])), 4)
-        return round(float(roc_auc_score(
-            y_true, proba, labels=labels, multi_class="ovr", average="macro")), 4)
+        if len(keep) == 2:
+            score = roc_auc_score((y_k == keep[1]).astype(int), p_k[:, 1])
+        else:
+            score = roc_auc_score(y_k, p_k, labels=keep, multi_class="ovr", average="macro")
     except ValueError:
         return None
+    return round(float(score), 4) if np.isfinite(score) else None
 
 
 def probe(Xtr, ytr, Xev, yev, label_names=None):
@@ -112,14 +140,14 @@ def probe(Xtr, ytr, Xev, yev, label_names=None):
     clf = LogisticRegression(max_iter=3000, class_weight="balanced")
     clf.fit(sc.transform(Xtr), ytr)
     pe = clf.predict(sc.transform(Xev))
-    proba = clf.predict_proba(sc.transform(Xev))
+    proba = _aligned_proba(clf, clf.predict_proba(sc.transform(Xev)), labels)
     per_class_recall = recall_score(yev, pe, labels=labels, average=None, zero_division=0)
     macro_f1 = round(float(f1_score(yev, pe, labels=labels, average="macro",
                                     zero_division=0)), 4)
     return {"acc": round(float(accuracy_score(yev, pe)), 4),
             "balanced_acc": round(float(balanced_accuracy_score(yev, pe)), 4),
             "f1": macro_f1,  # macro-averaged; the benchmark harness reads "f1"
-            "auroc": _safe_auroc(yev, proba, labels),
+            "auroc": _safe_auroc(yev, proba, labels, scored_labels=clf.classes_),
             "classes": list(label_names[:len(labels)]),
             "n_train": int(len(ytr)),
             "n_eval": int(len(yev)),
@@ -187,6 +215,12 @@ def main():
     print(f"[eeg-eval] TRAINED (pool={pool}):", probe(Xtr, ytr, Xev, yev, label_names))
 
     if args.floor:  # same architecture, untrained -> random-encoder floor
+        # Seed the floor init so the ~0.79 reference is reproducible and matches
+        # benchmark.py's seeded floor (it was previously unseeded -> drifted run to
+        # run). NB: BatchNorm uses init running stats (0/1) here, so this is an
+        # untrained-architecture floor with un-adapted BN, not a data-calibrated one.
+        seed = int(cfg.meta.get("seed", 0))
+        torch.manual_seed(seed); torch.cuda.manual_seed_all(seed); np.random.seed(seed)
         rnd = build_encoder(cfg.model).to(device).eval()
         Rtr, ry = extract_features(rnd, args.train_split, device, data_cfg, pool=pool)
         Rev, rey = extract_features(rnd, args.eval_split, device, data_cfg, pool=pool)

@@ -53,13 +53,25 @@ def fit_score(Xtr, ytr, Xev, yev, C):
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import balanced_accuracy_score, roc_auc_score
     sc = StandardScaler().fit(Xtr)
-    clf = LogisticRegression(max_iter=2000, class_weight="balanced", C=C).fit(sc.transform(Xtr), ytr)
+    # random_state pins the solver so the 100%-labels point is deterministic across
+    # the 5 seeds (its per-seed subsample is the full permuted fit-set, so std there
+    # must be 0; without this the JEPA arm showed std~0.0016 = solver jitter sold as
+    # a seed CI).
+    clf = LogisticRegression(max_iter=2000, class_weight="balanced", C=C,
+                             random_state=0).fit(sc.transform(Xtr), ytr)
     pe = clf.predict(sc.transform(Xev)); se = clf.predict_proba(sc.transform(Xev))[:, 1]
     return balanced_accuracy_score(yev, pe), roc_auc_score(yev, se)
 
 
 def curve(Xtr, ytr, pidtr, Xev, yev):
-    """Patient-disjoint dev split -> select C (never on eval) -> label-fraction sweep (5 seeds)."""
+    """Patient-disjoint dev split -> select C (never on eval) -> label-fraction sweep (5 seeds).
+
+    PROTOCOL NOTE: the sweep fits on ``Xfit = Xtr[~dm]`` = TRAIN minus the 15%
+    patient-disjoint dev set used to pick C. So the 100%-labels point is ~85% of
+    TRAIN (n~2317 of 2717), NOT the full-split probe that produces the headline
+    0.819 — the two numbers are on different fit sets by design. Report the curve as
+    a label-EFFICIENCY shape (JEPA-vs-random gap), not as the full-split number.
+    """
     rng = np.random.default_rng(0)
     pats = np.unique(pidtr); rng.shuffle(pats)
     devset = set(pats[: max(1, int(0.15 * len(pats)))].tolist())
@@ -100,6 +112,10 @@ def main():
     print("[lab] extract JEPA features...", flush=True)
     Xtr, ytr, pidtr = extract(enc, "train", dev, dcfg); Xev, yev, _ = extract(enc, "eval", dev, dcfg)
     print("[lab] extract RANDOM-encoder features...", flush=True)
+    # Seed the floor init so the random-encoder curve is reproducible (matches the
+    # seeded floors in eval.py / benchmark.py). BatchNorm uses init running stats.
+    _seed = int(cfg.meta.get("seed", 0))
+    torch.manual_seed(_seed); torch.cuda.manual_seed_all(_seed); np.random.seed(_seed)
     rnd = build_encoder(cfg.model).to(dev).eval()
     Rtr, ry, pidr = extract(rnd, "train", dev, dcfg); Rev, rey, _ = extract(rnd, "eval", dev, dcfg)
 
