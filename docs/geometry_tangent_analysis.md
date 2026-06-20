@@ -7,10 +7,12 @@ A 2×2 (+ VICReg reference) factorial — anti-collapse **{VICReg, SIGReg, PEIRA
 | reg \ space | ambient | tangent |
 |---|---|---|
 | VICReg | 0.814 | — |
-| SIGReg | 0.819 | **0.820** (tightest variance) |
+| SIGReg | 0.819 | **0.820** (tightest variance†) |
 | PEIRA  | 0.815 | 0.807 |
 
 Per-cell seed ranges overlap heavily (~0.01–0.04 wide). **No significant effect of regulariser or of space — every cell lands at ~0.82 ± seed noise.** The geometry-aware tangent neither helps nor clearly hurts; PEIRA does not beat SIGReg; there is no interaction.
+
+> †**Caveat (verified):** BCS/SIGReg seeds its random slice directions from `self.step`, not the run seed (`eb_jepa/losses.py`), so the slice schedule is identical across the 3 seeds — SIGReg's error bars do **not** include slicing randomness and its "tightest variance" is *partly an artifact*. Don't lean on it. Fix (draw slices from the run-seeded global RNG) must precede any re-run, as it shifts all SIGReg numbers. See `docs/audit_notes_for_slides.md` §3.
 
 > Honesty note: the single-seed **0.833** (SIGReg-ambient, seed 1) was the *top* of that cell's range; its 3-seed mean is **0.819**. Report **~0.82 (best seed 0.833)**, never 0.833 alone.
 

@@ -1,8 +1,10 @@
-"""EEG dataset — TUH EEG abnormality corpus (TUAB_PREPROCESSED).
+"""EEG dataset — TUH EEG abnormality corpus (TUAB_PREPROCESSED) and labelled EDFs.
 
 Raw EDF recordings (19 channels @ 200 Hz). The corpus is split into
 ``train`` / ``eval`` patients (patient-disjoint), each with ``normal`` and
-``abnormal`` sub-folders.
+``abnormal`` sub-folders. For diagnosis experiments beyond TUAB's binary label,
+the probe path can also read arbitrary class folders:
+``root/{train,eval}/<diagnosis_name>/**/*.edf``.
 
 Two access modes, both PROVIDED here (plumbing):
 
@@ -10,15 +12,17 @@ Two access modes, both PROVIDED here (plumbing):
     10 s window from a random recording and returns TWO independently augmented
     views ``(v1, v2)`` for a two-view (VICReg) invariance objective.
   * ``mode="supervised"`` / ``"probe"`` — one item = one *recording*: N
-    evenly-spaced windows ``[N, C, T]`` plus its label (0=normal, 1=abnormal),
-    for recording-level feature extraction in ``examples/eeg/eval.py``.
+    evenly-spaced windows ``[N, C, T]`` plus its integer class label, for
+    recording-level feature extraction in ``examples/eeg/eval.py``.
 
 The modelling choices on top of these windows (encoder, SSL objective, probe)
 live in ``examples/eeg/`` and are where the ``# TODO``s are.
 """
 import glob
 import os
+import warnings
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
@@ -46,6 +50,8 @@ class EEGConfig:
     num_workers: int = 8
     frac: float = 1.0              # SSL only: fraction of train recordings (pretrain-data-efficiency)
     frac_seed: int = 0
+    label_scheme: str = "tuab"     # tuab | folders
+    class_names: Optional[List[str]] = None  # ordered class folders for probe mode
     # SSL augmentation strengths (per view, in z-scored units)
     aug_noise_std: float = 0.1     # additive Gaussian noise std
     aug_scale_jitter: float = 0.2  # per-channel amplitude scale ~ U(1-j, 1+j)
@@ -60,17 +66,59 @@ def _list_edf(root: str, split: str) -> List[str]:
     return files
 
 
-def _list_labelled(root: str, split: str):
-    """list of (path, label) — label 0=normal, 1=abnormal — for the probe."""
+def _normalise_class_names(class_names):
+    if class_names is None:
+        return None
+    if isinstance(class_names, str):
+        return [name.strip() for name in class_names.split(",") if name.strip()]
+    return [str(name) for name in class_names]
+
+
+def _edf_files(path: Path) -> List[str]:
+    return sorted(glob.glob(str(path / "**" / "*.edf"), recursive=True))
+
+
+def _infer_folder_classes(root: str, split: str) -> List[str]:
+    base = Path(root) / split
+    if not base.exists():
+        raise FileNotFoundError(f"Split directory does not exist: {base}")
+    return sorted(p.name for p in base.iterdir() if p.is_dir() and _edf_files(p))
+
+
+def _list_labelled(root: str, split: str, label_scheme="tuab", class_names=None):
+    """Return ``(items, label_names)`` for the probe.
+
+    ``tuab`` keeps the existing binary normal/abnormal mapping. ``folders`` maps
+    each immediate sub-folder under ``root/split`` to a class, or uses the
+    explicitly supplied ``class_names`` order.
+    """
+    if label_scheme == "tuab":
+        label_names = _normalise_class_names(class_names) or ["normal", "abnormal"]
+    elif label_scheme == "folders":
+        label_names = _normalise_class_names(class_names) or _infer_folder_classes(root, split)
+    else:
+        raise ValueError(f"unknown label_scheme: {label_scheme!r} (expected 'tuab' or 'folders')")
+
+    if not label_names:
+        raise FileNotFoundError(f"No class folders with .edf files under {Path(root) / split}")
+
+    if label_scheme == "folders":
+        base = Path(root) / split
+        if base.exists():  # warn rather than silently drop eval-only diagnoses
+            unused = [c for c in _infer_folder_classes(root, split) if c not in label_names]
+            if unused:
+                warnings.warn(
+                    f"{base}: .edf folders not in the class list {label_names} will be "
+                    f"ignored: {unused}", stacklevel=2)
+
     items = []
-    for label, cls in [(0, "normal"), (1, "abnormal")]:
-        for p in sorted(glob.glob(os.path.join(root, split, cls, "**", "*.edf"),
-                                  recursive=True)):
+    for label, cls in enumerate(label_names):
+        for p in _edf_files(Path(root) / split / cls):
             items.append((p, label))
     if not items:
         raise FileNotFoundError(
-            f"No labelled .edf under {os.path.join(root, split)}/{{normal,abnormal}}")
-    return items
+            f"No labelled .edf under {Path(root) / split} for classes {label_names}")
+    return items, label_names
 
 
 def _zscore(x: np.ndarray, axis: int) -> np.ndarray:
@@ -96,9 +144,11 @@ class EEGDataset(torch.utils.data.Dataset):
                 k = max(1, int(cfg.frac * len(self.files)))
                 self.files = sorted(np.array(self.files)[r.choice(len(self.files), k, replace=False)].tolist())
             self.items = None
+            self.label_names = None
         else:  # supervised / probe: one item per recording
             self.files = None
-            self.items = _list_labelled(cfg.data_root, cfg.split)
+            self.items, self.label_names = _list_labelled(
+                cfg.data_root, cfg.split, cfg.label_scheme, cfg.class_names)
         # One RNG per worker, seeded lazily from PyTorch's worker seed.
         self._rng = np.random.default_rng()
         self._rng_seed = None

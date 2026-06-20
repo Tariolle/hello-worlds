@@ -48,6 +48,43 @@ recording level — plus collapse diagnostics (effective rank, per-dim std,
 off-diagonal covariance) logged every epoch, a label-fraction efficiency curve,
 and robustness under injected noise / channel dropout.
 
+## Multi-diagnosis probes
+TUAB only provides the binary `normal` / `abnormal` label. To predict illness
+type, import a labelled EDF dataset with one class folder per diagnosis:
+
+```text
+MY_DIAGNOSIS_DATASET/
+  train/
+    normal/**/*.edf
+    seizure/**/*.edf
+    dementia/**/*.edf
+  eval/
+    normal/**/*.edf
+    seizure/**/*.edf
+    dementia/**/*.edf
+```
+
+Then run the frozen probe with folder labels:
+
+```bash
+python -m examples.eeg.eval \
+  --ckpt ./checkpoints/eeg_ambient_sigreg/latest.pth.tar \
+  --data-root MY_DIAGNOSIS_DATASET \
+  --label-scheme folders \
+  --classes normal,seizure,dementia
+```
+
+The evaluator reports accuracy, balanced accuracy, macro-F1, one-vs-rest AUROC
+when defined, per-class recall, and the confusion matrix.
+
+**You are responsible for the patient-disjoint split here.** Unlike TUAB (disjoint
+by construction), the `folders` scheme trusts whatever you put under `train/` and
+`eval/`. If recordings from the same patient land in both, the probe number is
+leaked and not comparable — keep every subject's recordings on one side only.
+Classes are resolved from the `train/` folders (or `--classes`) and reused for
+`eval/`: a diagnosis present only under `eval/` is silently ignored, so check the
+`[eeg-eval] classes` line the evaluator prints.
+
 ## Honesty rules (read before talking to the jury)
 - Report **balanced accuracy on the full split**, and state the probe head.
   Never plain accuracy on a reduced subset (that is the EEG-VJEPA number; it is

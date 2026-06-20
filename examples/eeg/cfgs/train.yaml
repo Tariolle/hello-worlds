@@ -21,6 +21,12 @@ data:
   batch_size: 256
   num_workers: 16
   frac: 1.0              # SSL: fraction of train recordings (pretrain-data-efficiency sweep)
+  # Probe labels. TUAB is binary normal/abnormal. For an imported diagnosis
+  # dataset arranged as root/{train,eval}/<class_name>/**/*.edf, set:
+  #   label_scheme: folders
+  #   class_names: [normal, seizure, dementia]  # optional; defaults to sorted folders
+  label_scheme: tuab
+  class_names:
   aug_noise_std: 0.1
   aug_scale_jitter: 0.2
   aug_chan_drop_p: 0.2
