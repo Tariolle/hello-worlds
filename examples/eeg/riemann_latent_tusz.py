@@ -113,6 +113,8 @@ def main():
     ENCS = [
         ("SIGReg-ambient (ours)", f"{a.work}/checkpoints/c1_sigreg_ambient_s1/latest.pth.tar", False),
         ("Random-init (control)", f"{a.work}/checkpoints/c1_sigreg_ambient_s1/latest.pth.tar", True),
+        ("SIGReg-tangent",        f"{a.work}/checkpoints/c2_sigreg_tangent_s1/latest.pth.tar", False),
+        ("PEIRA-tangent",         f"{a.work}/checkpoints/c4_peira_tangent_s1/latest.pth.tar", False),
     ]
     results = []
     for label, ckpt, rand in ENCS:
