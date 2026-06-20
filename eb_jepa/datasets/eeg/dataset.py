@@ -50,6 +50,9 @@ class EEGConfig:
     num_workers: int = 8
     frac: float = 1.0              # SSL only: fraction of train recordings (pretrain-data-efficiency)
     frac_seed: int = 0
+    file_list: Optional[str] = None  # SSL only: explicit newline-delimited EDF paths
+                                     # (overrides the glob) — cross-corpus pretrain with
+                                     # patient-level exclusion (e.g. TUSZ minus TUAB-eval)
     label_scheme: str = "tuab"     # tuab | folders
     class_names: Optional[List[str]] = None  # ordered class folders for probe mode
     # SSL augmentation strengths (per view, in z-scored units)
@@ -138,7 +141,13 @@ class EEGDataset(torch.utils.data.Dataset):
         self.cfg = cfg
         self.window = int(cfg.window_sec * cfg.sfreq)
         if cfg.mode == "ssl":
-            self.files = _list_edf(cfg.data_root, cfg.split)
+            if getattr(cfg, "file_list", None):    # explicit cross-corpus list (patient-excluded)
+                with open(cfg.file_list) as fh:
+                    self.files = [ln.strip() for ln in fh if ln.strip()]
+                if not self.files:
+                    raise FileNotFoundError(f"Empty file_list: {cfg.file_list}")
+            else:
+                self.files = _list_edf(cfg.data_root, cfg.split)
             if getattr(cfg, "frac", 1.0) < 1.0:    # pretrain-data-efficiency: SSL on a subset
                 r = np.random.default_rng(getattr(cfg, "frac_seed", 0))
                 k = max(1, int(cfg.frac * len(self.files)))
