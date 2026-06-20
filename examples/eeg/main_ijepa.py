@@ -111,6 +111,7 @@ class EEGIJEPAModule(nn.Module):
         self.mask_ratio      = s.get("mask_ratio", 0.4)
         self.freq_mask_p     = s.get("freq_mask_p", 0.0)
         self.freq_mask_bands = s.get("freq_mask_bands", 1)
+        self.single_view     = s.get("single_view", False)
 
         d = encoder.out_dim
         proj_spec = s.get("proj", "512-512-256")
@@ -152,31 +153,42 @@ class EEGIJEPAModule(nn.Module):
                                     p_mask=self.freq_mask_p,
                                     n_bands=self.freq_mask_bands)
 
-        # Online forward on both views (for anti-collapse BCS)
-        z1 = self.proj_online(self.enc_online.represent(v_ctx))   # [B, p]
-        z2 = self.proj_online(self.enc_online.represent(v2))      # [B, p]
+        if self.single_view:
+            # ── Single-view: predict clean v1 from masked v1 (same window).
+            # No second augmented view; collapse prevention from EMA asymmetry only.
+            z_ctx  = self.proj_online(self.enc_online.represent(v_ctx))   # [B, p]
+            z_pred = self.predictor(z_ctx)
+            with torch.no_grad():
+                z_tgt = self.proj_target(self.enc_target.represent(v1))   # clean v1
 
-        # Prediction: context → target space
-        z_pred = self.predictor(z1)
+            pred_loss = F.mse_loss(z_pred, z_tgt.detach())
+            loss = pred_loss
+            logs = {
+                "pred_loss": round(pred_loss.item(), 5),
+                "bcs_loss":  0.0,
+                **collapse_metrics(z_ctx.detach()),
+            }
+        else:
+            # ── Two-view (default): predict EMA(v2) from masked v1.
+            # BCS on (z_ctx, z_v2) as anti-collapse safety net.
+            z1 = self.proj_online(self.enc_online.represent(v_ctx))   # [B, p]
+            z2 = self.proj_online(self.enc_online.represent(v2))      # [B, p]
+            z_pred = self.predictor(z1)
+            with torch.no_grad():
+                z_tgt = self.proj_target(self.enc_target.represent(v2))
 
-        # Target forward (stop-grad)
-        with torch.no_grad():
-            z_tgt = self.proj_target(self.enc_target.represent(v2))
+            pred_loss = F.mse_loss(z_pred, z_tgt.detach())
+            bcs_out   = self.bcs(z1, z2)
+            bcs_loss  = bcs_out["loss"]
+            loss = pred_loss + self.bcs_weight * bcs_loss
+            logs = {
+                "pred_loss": round(pred_loss.item(), 5),
+                "bcs_loss":  round(bcs_loss.item(), 5),
+                **{k: round(v.item() if torch.is_tensor(v) else v, 5)
+                   for k, v in bcs_out.items() if k != "loss"},
+                **collapse_metrics(z1.detach()),
+            }
 
-        # ── Losses ────────────────────────────────────────────────────────────
-        pred_loss = F.mse_loss(z_pred, z_tgt.detach())
-        bcs_out   = self.bcs(z1, z2)
-        bcs_loss  = bcs_out["loss"]
-
-        loss = pred_loss + self.bcs_weight * bcs_loss
-
-        logs = {
-            "pred_loss": round(pred_loss.item(), 5),
-            "bcs_loss":  round(bcs_loss.item(), 5),
-            **{k: round(v.item() if torch.is_tensor(v) else v, 5)
-               for k, v in bcs_out.items() if k != "loss"},
-            **collapse_metrics(z1.detach()),
-        }
         return loss, logs
 
 
