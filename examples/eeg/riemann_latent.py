@@ -111,18 +111,21 @@ def main():
         emb_euc = TSNE(n_components=2, perplexity=a.perplexity, init="pca",
                        random_state=0).fit_transform(tan_s)
 
-        # --- Riemannian branch (AIRM) ---
+        # --- Riemannian branch (AIRM) --- decoupled: silhouette and embedding fail independently
         sil_airm, disk = float("nan"), None
         try:
-            import rtsne
             from pyriemann.utils.distance import pairwise_distance
             D = pairwise_distance(mats, metric="riemann")
             sil_airm = silhouette_score(D, y, metric="precomputed")
+        except Exception as e:  # noqa: BLE001
+            print(f"[riem] {label}: AIRM silhouette failed: {e}", flush=True)
+        try:
+            import rtsne
             m = rtsne.RiemannianTSNE(perplexity=a.perplexity, max_iter=a.max_iter)
             Y = np.asarray(m.fit_transform(mats))         # [N, 2, 2] SPD
             disk = np.stack(spd2_to_disk(Y), axis=1)      # [N, 2]
         except Exception as e:  # noqa: BLE001
-            print(f"[riem] {label}: Riemannian branch failed: {e}", flush=True)
+            print(f"[riem] {label}: rtsne embedding failed: {e}", flush=True)
         print(f"[riem] {label}: silhouette  euclidean(tan)={sil_euc:.4f}  "
               f"AIRM(geodesic)={sil_airm:.4f}", flush=True)
         results.append((label, y, emb_euc, sil_euc, disk, sil_airm))
