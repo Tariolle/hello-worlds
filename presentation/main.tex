@@ -63,6 +63,20 @@
 }
 
 % ==========================================================
+\section{Contribution}
+% ==========================================================
+
+\begin{frame}{Our contribution, in one slide}
+  \small
+  \begin{enumerate}
+    \item \textbf{A strong frozen baseline.} SIGReg-ambient JEPA matches the LeJEPA/Laya recipe's value on our setup (pipeline-helped: organizers' preprocessing $+$ \texttt{eb\_jepa} dataloader/losses) -- not a controlled head-to-head with Laya.
+    \item \textbf{A broad ablation that does not beat it.} Ambient/tangent SIGReg, ambient/tangent PEIRA, Graph-JEPA, Fourier-JEPA -- none improves balanced accuracy beyond noise ($\leq 0.013$). Ambient SIGReg is hard to beat.
+    \item \textbf{Latent geometry is the methods contribution.} Our latent separates normal/abnormal $\sim$2$\times$ better than random on TUAB; we visualise it with \textbf{de Surrel's AIRM Riemannian t-SNE} -- the principled metric for SPD/EEG covariances -- which gives a small, \emph{consistent} edge over classical t-SNE \emph{where cluster structure exists} (tangent shaping helps the covariance geometry slightly, though not the probe).
+    \item \textbf{Rigor over spin.} We report the limits: \emph{decodable $\ne$ clustered} (TUEV), \emph{sustained vs transient}, the AIRM edge within noise. An honest negative beats a fragile positive.
+  \end{enumerate}
+\end{frame}
+
+% ==========================================================
 \section{Motivation}
 % ==========================================================
 
