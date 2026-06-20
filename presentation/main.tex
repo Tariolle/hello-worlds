@@ -13,7 +13,7 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning, fit, arrows.meta, calc, decorations.pathreplacing, backgrounds}
 
-\graphicspath{{./figures/}{../results/label_eff/}{../results/benchmark/}{../results/latent/}{../}}
+\graphicspath{{./figures/}{../results/label_eff/}{../results/benchmark/}{../results/robustness/}{../results/calibration/}{../results/latent/}{../}}
 
 \definecolor{insared}{HTML}{E51F13}
 \definecolor{vcolor}{HTML}{2E86AB}   % encoder / our method (blue)
@@ -340,6 +340,19 @@
   \end{center}
 \end{frame}
 
+\begin{frame}{Apples-to-apples: it is not an in-domain artifact}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item \textit{``You pretrained on TUAB, the FMs didn't''} -- the obvious attack on the in-domain number. So we ran the fair version.
+    \item Pretrain SIGReg on a \textbf{general TUH corpus} (\textbf{TUSZ} seizure; TUAB-eval patients \emph{excluded} $\Rightarrow$ patient-disjoint), freeze, linear-probe TUAB -- the FMs' own regime (general pretrain $\to$ frozen TUAB).
+    \item \textbf{Result: 0.814 BA / 0.889 AUROC} -- essentially equal to in-domain \ba{}. \textbf{The in-domain advantage is \emph{not} the driver.}
+  \end{itemize}
+  \vspace{0.3em}
+  \begin{alertblock}{Honest caveat}
+    \footnotesize TUSZ is general \emph{same-site} TUH (not multi-site like the FMs); single seed. We say ``match while frozen'', never ``beat''.
+  \end{alertblock}
+\end{frame}
+
 \begin{frame}{The value of self-supervision (label \& data efficiency)}
   \vspace{-0.2em}
   \begin{center}
@@ -392,6 +405,20 @@
   \begin{center}\footnotesize
     \textbf{Top of the frozen linear-probe results}; lower edge of the \emph{fine-tuned} BA band. AUROC $\sim$\aurocv{} above BIOT/EEGPT, below CBraMod/REVE. \textbf{Competitive at the operating point -- not SOTA.}
   \end{center}
+\end{frame}
+
+\begin{frame}{Beyond accuracy: calibration \& robustness (3 axes, not 1)}
+  \vspace{0.1em}
+  \begin{columns}[c]
+    \column{0.5\textwidth}\centering\includegraphics[width=\textwidth]{calibration.png}
+    \column{0.5\textwidth}\centering\includegraphics[width=\textwidth]{robustness_3seed.png}
+  \end{columns}
+  \vspace{0.2em}
+  \begin{itemize}\footnotesize
+    \item \textbf{Calibration}: every SSL encoder beats the random floor (ECE, selective prediction) -- geometry/PEIRA does \emph{not} beat ambient.
+    \item \textbf{Robustness (3-seed)}: ambient SIGReg is the \emph{most} channel-dropout-robust; the SPD-tangent objective \emph{degrades} dropout-robustness; no geometry win under noise (the single-seed hint did not replicate).
+    \item \textbf{The null holds on all three axes} -- accuracy, calibration, robustness. Geometry buys none of them here.
+  \end{itemize}
 \end{frame}
 
 % ==========================================================
@@ -453,6 +480,15 @@
   \end{center}
 \end{frame}
 
+\begin{frame}{We \emph{measured} the geometry -- not just hid it}
+  \vspace{0.4em}
+  \begin{itemize}
+    \item The probe reads the first-order \texttt{represent}; the SPD-tangent lives \emph{only} in the SSL loss. So we exposed the \textbf{learned tangent} to the probe directly.
+    \item Learned-tangent probe: \textbf{0.79} BA (SIGReg-tangent 0.790 $>$ its random-tangent floor 0.776) -- a \emph{real but weak} second-order signal, \textbf{below} the first-order rep (0.82).
+    \item TUAB rewards first-order power; the second-order tangent caps $\sim$0.78--0.80 (cf.\ MENDR 0.78--0.80, Riemann \riem). \textbf{The tangent is not broken -- it is capped by the task.}
+  \end{itemize}
+\end{frame}
+
 \begin{frame}{What we claim -- and what we don't}
   \vspace{0.4em}
   \begin{columns}[T]
@@ -502,6 +538,7 @@
     \item A \textbf{controlled frozen-transfer study}, not a leaderboard entry.
     \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen -- with the random-encoder floor honestly disclosed.
     \item \textbf{A clean, pre-registered negative result}: \emph{where} anti-collapse acts (ambient vs SPD-tangent) and \emph{which} regulariser do not change frozen-probe accuracy on TUAB -- with a geometric reason why.
+    \item \textbf{The null is multi-axis}: geometry/PEIRA help neither accuracy, nor calibration, nor robustness (3 seeds) -- and it holds even \emph{general}-pretrained (TUSZ $\to$ frozen TUAB, 0.814).
     \item \textbf{Honesty as the headline}: an honest negative beats a fragile positive.
   \end{itemize}
   \vspace{1.0em}
