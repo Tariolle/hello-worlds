@@ -1,168 +1,101 @@
-# hello-worlds — geometry-aware JEPA for EEG (TUAB)
+# hello-worlds — Geometry-Aware JEPA for EEG
 
-Hackathon "Hack the World(s)" — EEG track. We pretrain a two-view joint-embedding
-SSL encoder on unlabeled EEG, freeze it, and linear-probe **normal vs abnormal** on
-TUAB. (We say "JEPA" loosely, after LeJEPA: the model is a *symmetric Siamese*
-augmentation-invariance + anti-collapse objective — **no predictor, no EMA/target
-encoder, no latent prediction**.) The contribution is a **controlled study of where
-the anti-collapse
-regulariser should live** — ambient Euclidean vs the tangent space of the EEG
-covariance SPD manifold — and **which mechanism wins there**: SIGReg (assumes an
-isotropic-Gaussian target) vs PEIRA (distribution-free, the principled fit for a
-non-Gaussian manifold tangent).
+**Hack the World(s) · EEG track · team Hello Worlds.** A controlled **frozen-transfer**
+study on **TUAB** (TUH Abnormal EEG): pretrain a two-view self-supervised encoder on
+unlabeled EEG, **freeze it**, and linear-probe *normal vs abnormal*.
 
-Built on a trimmed vendor of [`eb_jepa`](https://github.com/facebookresearch/eb_jepa)
-(its EEG dataloader + VICReg/SIGReg losses are reused intact under `eb_jepa/`).
+> **Headline.** Domain-matched JEPA pretraining yields a frozen encoder whose linear
+> probe (**0.819 balanced accuracy / ~0.89 AUROC, 3 seeds**) is competitive with the
+> TUAB fine-tuning literature and above every foundation model evaluated *frozen*
+> (EEG-FM-Bench: 0.55–0.78). In a controlled 2×2 ablation, **neither a distribution-free
+> regulariser (PEIRA) nor a geometry-aware SPD-tangent variant beats the plain ambient
+> SIGReg baseline** — yet the frozen SPD latent is visibly *organised*, and **de Surrel's
+> AIRM Riemannian embedding sharpens it over the Euclidean view**, most clearly for SIGReg.
 
-## The ladder (each rung is presentable on its own)
-| Rung | `reg_type` | `reg_space` | what it is |
-|---|---|---|---|
-| 0 | `sigreg` | `ambient` | Laya-like baseline + qualification insurance |
-| 1 | `sigreg` | `tangent` | geometry-aware SIGReg |
-| 2 | `peira`  | `tangent` | distribution-free anti-collapse on the manifold |
+We say "JEPA" loosely (after LeJEPA): the model is a **symmetric Siamese**
+augmentation-invariance + anti-collapse objective — no predictor, no EMA/target encoder,
+no latent prediction. Built on a trimmed vendor of
+[`eb_jepa`](https://github.com/facebookresearch/eb_jepa) (its EEG dataloader +
+VICReg/SIGReg losses are reused intact under `eb_jepa/`).
 
-Reference arms: `vicreg/ambient` (eb_jepa default), plus the 0-param classical
-**Riemannian baseline** (`baseline_riemann.py`, **0.761 BalAcc** here on TUAB —
-below our random floor). Gemein et al. 2020 report ~0.86 *accuracy* with a
-filter-bank: different metric, protocol and features, **not comparable** to our
-balanced-accuracy number.
+## The question
+Where should the anti-collapse regulariser act, and which mechanism wins? The EEG channel
+covariance lives on a curved **SPD manifold**, so we test acting in its **tangent** vs
+plain **ambient** Euclidean space, with **SIGReg** (isotropic-Gaussian target) vs **PEIRA**
+(distribution-free — the principled fit for a non-Gaussian tangent).
 
-## Quickstart (on the cluster)
-```bash
-uv venv && uv pip install -e .        # install torch matching cluster CUDA (see pyproject)
-# 0) sanity-check data + get the complexity yardstick (no GPU):
-python -m examples.eeg.baseline_riemann --data-root <TUAB_PREPROCESSED>
-# 1) pretrain (edit cfgs/train.yaml: data.data_root, model.ssl.reg_*):
-python -m examples.eeg.main  --fname examples/eeg/cfgs/train.yaml
-# 2) frozen probe (held-out patients), with random-encoder floor:
-python -m examples.eeg.eval  --ckpt ./checkpoints/eeg_ambient_sigreg/latest.pth.tar --floor
+|            | ambient (Euclidean)        | tangent (SPD)        |
+|------------|----------------------------|----------------------|
+| **VICReg** | `C0` reference             | —                    |
+| **SIGReg** | `C1` Laya-like baseline    | `C2` geometry-aware  |
+| **PEIRA**  | `C3`                       | `C4` ex-hypothesis   |
+
+**A clean 3-seed null:** every cell lands ~0.82, inter-cell gaps ≤ 0.013 (below a plausible
+eval bootstrap CI). Geometry/PEIRA help neither accuracy, calibration, nor robustness — the
+payoff is the **latent geometry**, not the probe number.
+
+## Results — frozen linear probe, TUAB 2717/276 patient-disjoint split
+| Method | BA | AUROC |
+|---|--:|--:|
+| **Ours — SIGReg in-domain** (TUAB→TUAB, 3 seeds) | **0.819** | ~0.89 |
+| Ours — SIGReg general-pretrain (TUSZ→TUAB, 1 seed) | 0.814 | 0.889 |
+| random-init encoder (floor) | 0.790 | — |
+| baseline — supervised-from-scratch (end-to-end / frozen) | 0.817 / 0.797 | 0.906 / 0.908 |
+| baseline — Riemannian covariance + logistic | 0.761 | — |
+| baseline — channel mean+std → linear probe | 0.553 | — |
+| frozen foundation models (CBraMod → BIOT) | 0.55 – 0.78 | — |
+
+Ours/baseline rows are measured locally; FM rows are quoted from **EEG-FM-Bench** (Xiong et
+al., arXiv 2508.17742). Figure: `results/benchmark/frozen_headtohead.png`.
+
+## Repo layout
+```
+eb_jepa/             trimmed vendor: EEG dataloader + VICReg/SIGReg losses
+examples/eeg/        entry points:
+  main.py              pretrain a JEPA cell        eval.py                frozen probe (+ --floor)
+  baseline_riemann.py  Riemannian cov baseline     baseline_chanstats.py  channel mean+std baseline
+  benchmark.py         render the benchmark table  frozen_headtohead.py   the FM comparison figure
+  cfgs/                train / ablation / supervised configs
+cluster/             Dalia (IDRIS) SLURM scripts        → see CLUSTER.md
+presentation/        jury deck (main.tex → main.pdf)    → make
+results/             measured numbers + figures (benchmark, latent, robustness, loss, …)
+references/          literature summaries (LeJEPA, Laya, S-JEPA, EEG-VJEPA)
+docs/                positioning, geometry analysis, benchmark tutorial
 ```
 
-## Benchmark (safe before training)
-The benchmark renderer compares local JEPA cells, local TUAB baselines, and
-published references such as Laya without launching pretraining:
+## Quickstart
 ```bash
+uv venv && uv pip install -e .        # torch matching your CUDA (see pyproject); on the cluster, see CLUSTER.md
+DATA=<TUAB_PREPROCESSED>
+
+# 0) sanity-check the data + 0-parameter yardsticks (no GPU)
+python -m examples.eeg.baseline_riemann   --data-root $DATA
+python -m examples.eeg.baseline_chanstats --data-root $DATA --n-windows 8
+
+# 1) pretrain a cell (set model.ssl.reg_type / reg_space in the config)
+python -m examples.eeg.main --fname examples/eeg/cfgs/train.yaml
+
+# 2) frozen linear probe on held-out patients, with the random-encoder floor
+python -m examples.eeg.eval --ckpt ./checkpoints/<run>/latest.pth.tar --floor
+
+# 3) render the benchmark table / figures (no training)
 python -m examples.eeg.benchmark
 ```
-Artifacts are written under `results/benchmark/`. See
-`docs/eeg_benchmark_tutorial.md` for the human and agent workflow, including how
-to add trained checkpoints later with `--checkpoint METHOD_ID=PATH`.
+Multi-diagnosis (folder-labelled EDFs) and TUEV event-level probes are supported via
+`eval.py --label-scheme folders --classes …` and `tuev_probe.py`. **You own the
+patient-disjoint split** for the `folders` scheme.
 
-## TCP-Graph-JEPA anomaly detection
-The repo also includes a graph-based JEPA anomaly detector for TUH/TUAB-style
-normal/abnormal EEG:
+## Additional tracks
+- **TCP-Graph-JEPA** (`train_graph_jepa.py`, `evaluate_graph_jepa.py`) — graph JEPA over the
+  22 TCP bipolar derivations; anomaly = failure of spatio-temporal latent predictability.
+  Oriented AUROC **0.791** (the direction inverts: abnormal EEG is *more* predictable).
+- **Fourier-JEPA** (`examples/eeg/cfgs/train_fourier.yaml`) — STFT spectral-stem encoder ablation.
 
-- the 22 TCP bipolar derivations are graph nodes,
-- graph edges combine shared-electrode continuity and contralateral symmetry,
-- the model masks channel-time tokens and predicts latent embeddings, not raw EEG,
-- anomaly score = failure of spatial-temporal latent predictability,
-- outputs include file/window scores and channel x time heatmaps.
+## Scope & honesty
+Not a foundation model, not SOTA in 24h. SIGReg-for-EEG (**Laya**) and Riemannian-SSL-for-EEG
+(**EEG-ReMinD**, **MENDR**) already exist — cited as parents. We report **balanced accuracy on
+the full split** with the probe head stated, disclose the **~0.79 random-encoder floor**, and
+never compare against reduced-subset accuracy. Full references in `presentation/main.tex`;
+positioning in `docs/positioning.md`.
 
-Expected model input is `[batch, 22, time_steps, feature_dim]`, defaulting to
-about 70 frames for 7 s windows and five log-bandpower features
-`delta/theta/alpha/beta/gamma`. Pre-extracted `.pt/.pth/.npy/.npz` tensors are
-used directly. Raw EDFs are optionally preprocessed with MNE: EDF load, resample,
-0.5-70 Hz filter, optional 60 Hz notch, TCP bipolar construction, 7 s windows,
-and log-bandpower features.
-
-Train self-supervised on normal windows:
-
-```bash
-python train_graph_jepa.py --config configs/graph_jepa.yaml
-```
-
-Evaluate file-level anomaly scores:
-
-```bash
-python evaluate_graph_jepa.py \
-  --checkpoint checkpoints/tcp_graph_jepa/latest.pth.tar \
-  --data-root <TUAB_OR_FEATURE_ROOT> \
-  --split eval \
-  --output-dir results/graph_jepa_eval
-```
-
-Visualize one EDF or tensor file:
-
-```bash
-python visualize_graph_jepa.py \
-  --checkpoint checkpoints/tcp_graph_jepa/latest.pth.tar \
-  --edf_or_tensor <file.edf_or_tensor> \
-  --output_dir results/graph_jepa_viz
-```
-
-For a quick CPU debug run, point `configs/graph_jepa.yaml` at a tiny tensor
-dataset and use `--limit-batches 2`.
-
-## What we measure
-Frozen **linear-probe balanced accuracy + AUROC on the full 2717/276 split**,
-recording level — plus collapse diagnostics (effective rank, per-dim std,
-off-diagonal covariance) logged every epoch, a label-fraction efficiency curve,
-and robustness under injected noise / channel dropout.
-
-## Multi-diagnosis probes
-TUAB only provides the binary `normal` / `abnormal` label. To predict illness
-type, import a labelled EDF dataset with one class folder per diagnosis:
-
-```text
-MY_DIAGNOSIS_DATASET/
-  train/
-    normal/**/*.edf
-    seizure/**/*.edf
-    dementia/**/*.edf
-  eval/
-    normal/**/*.edf
-    seizure/**/*.edf
-    dementia/**/*.edf
-```
-
-Then run the frozen probe with folder labels:
-
-```bash
-python -m examples.eeg.eval \
-  --ckpt ./checkpoints/eeg_ambient_sigreg/latest.pth.tar \
-  --data-root MY_DIAGNOSIS_DATASET \
-  --label-scheme folders \
-  --classes normal,seizure,dementia
-```
-
-The classical Riemannian covariance baseline supports the same folder-labelled
-layout:
-
-```bash
-python -m examples.eeg.baseline_riemann \
-  --data-root MY_DIAGNOSIS_DATASET \
-  --label-scheme folders \
-  --classes normal,seizure,dementia
-```
-
-The evaluator reports accuracy, balanced accuracy, macro-F1, one-vs-rest AUROC
-when defined, per-class recall, and the confusion matrix.
-
-**You are responsible for the patient-disjoint split here.** Unlike TUAB (disjoint
-by construction), the `folders` scheme trusts whatever you put under `train/` and
-`eval/`. If recordings from the same patient land in both, the probe number is
-leaked and not comparable — keep every subject's recordings on one side only.
-Classes are resolved from the `train/` folders (or `--classes`) and reused for
-`eval/`: a diagnosis present only under `eval/` is silently ignored, so check the
-`[eeg-eval] classes` line the evaluator prints.
-
-For TUEV, use the event-level probe because the dataset is not recording-labelled
-like TUAB:
-
-```bash
-python -m examples.eeg.tuev_probe \
-  --riemann-only \
-  --tuev-root <TUEV_PREPROCESSED>
-```
-
-## Honesty rules (read before talking to the jury)
-- Report **balanced accuracy on the full split**, and state the probe head.
-  Never plain accuracy on a reduced subset (that is the EEG-VJEPA number; it is
-  not comparable to the LaBraM table).
-- We are **not** a foundation model and **not** SOTA in 24h. SIGReg-for-EEG
-  (Laya) and Riemannian-SSL-for-EEG (EEG-ReMinD, reconstruction) already exist —
-  cite them as parents. Our claim is the **intersection**: geometry-aware,
-  joint-embedding (LeJEPA-style — *not* latent-predictive; no predictor/EMA target),
-  distribution-free anti-collapse on the SPD tangent.
-
-See `tasks/todo.md` for the full plan, baselines, targets, and division.
+**Team Hello Worlds** — Florent Tariolle · Clément Genninasca · Yoann Frayce · Hippolyte du Pac de Marsoulies.
