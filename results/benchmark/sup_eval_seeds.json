@@ -1,0 +1,26 @@
+{
+  "what": "Supervised-from-scratch baseline on TUAB (same EEGEncoder1D, trained end-to-end with a linear head + class-balanced CE, early-stopped on a patient-disjoint dev split carved from TRAIN). Two held-out-patient numbers per seed: (a) END-TO-END (encoder+head, mean-pooled window logits) and (b) FROZEN-PROBE (freeze the supervised encoder, fit the SAME StandardScaler+balanced-LogReg probe as the SSL eval -> apples-to-apples with our SSL 0.819).",
+  "provenance": {
+    "code": "examples/eeg/main_supervised.py + cfgs/train_supervised.yaml + cluster/train_supervised.sbatch",
+    "cluster": "Dalia/IDRIS, vivatech-helloworlds; jobs 77863 (s1), 77891 (s1000), 77892 (s10000)",
+    "logs": "/lustre/work/vivatech-helloworlds/ftariolle/logs/sup_{77863,77891,77892}.out",
+    "split": "TUAB patient-disjoint 2717 train / 276 eval; dev = 15% of TRAIN patients (dev_seed=0, fixed across model seeds; no eval leakage)",
+    "fairness": "same architecture, same TUAB-train data, same augmentations as the SSL views, class-balanced CE; early stopping on dev balanced-acc (patience 8, max 60 epochs)"
+  },
+  "per_seed": {
+    "1":     {"job": 77863, "end_to_end": {"balanced_acc": 0.8057, "auroc": 0.9096}, "frozen_probe": {"balanced_acc": 0.7732, "auroc": 0.9053}, "early_stop_epoch": 48, "best_dev_epoch": 40},
+    "1000":  {"job": 77891, "end_to_end": {"balanced_acc": 0.8197, "auroc": 0.9045}, "frozen_probe": {"balanced_acc": 0.8037, "auroc": 0.9065}, "early_stop_epoch": 13, "best_dev_epoch": 5},
+    "10000": {"job": 77892, "end_to_end": {"balanced_acc": 0.8244, "auroc": 0.9052}, "frozen_probe": {"balanced_acc": 0.8156, "auroc": 0.9124}, "early_stop_epoch": 15, "best_dev_epoch": 7}
+  },
+  "means_3seed": {
+    "end_to_end":   {"balanced_acc": 0.8166, "balanced_acc_std": 0.0079, "auroc": 0.9064, "auroc_std": 0.0023},
+    "frozen_probe": {"balanced_acc": 0.7975, "balanced_acc_std": 0.0179, "auroc": 0.9081, "auroc_std": 0.0031}
+  },
+  "ssl_reference": {"frozen_probe": {"balanced_acc": 0.819, "balanced_acc_std": 0.002, "auroc": 0.891}, "source": "results/benchmark/jepa_eval_seeds.json (c1 sigreg-ambient)"},
+  "honest_reading": [
+    "BALANCED ACCURACY: end-to-end supervised (0.817) TIES our frozen SSL (0.819) -- gap -0.002, within noise. Frozen-probing the supervised encoder is slightly lower and far noisier (0.797 +/- 0.018 vs 0.819 +/- 0.002); the +0.022 SSL edge is ~1.2 std, NOT a clean win.",
+    "AUROC: supervised is consistently HIGHER (0.906 e2e / 0.908 frozen vs 0.891 SSL) -- supervised features RANK better; SSL trades ranking for better thresholded balanced-acc and far more stability across seeds.",
+    "STABILITY / OVERFIT: SSL frozen std 0.002 vs supervised frozen std 0.018. Seed 1 trained longest (48 epochs) and overfit most (worst held-out 0.773 frozen); seeds that stopped early (13/15 epochs) generalized better. Supervised is seed-sensitive; SSL is not.",
+    "TAKEAWAY: NOT 'SSL beats supervised'. The honest claim is PARITY -- a same-architecture model with FULL task labels matches our LABEL-FREE frozen probe on balanced accuracy, more stably; supervised only edges ahead on AUROC. This supports the label-efficiency value prop, not SSL superiority."
+  ]
+}
