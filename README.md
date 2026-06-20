@@ -1,8 +1,11 @@
 # hello-worlds — geometry-aware JEPA for EEG (TUAB)
 
-Hackathon "Hack the World(s)" — EEG track. We pretrain a two-view JEPA on
-unlabeled EEG, freeze the encoder, and linear-probe **normal vs abnormal** on
-TUAB. The contribution is a **controlled study of where the anti-collapse
+Hackathon "Hack the World(s)" — EEG track. We pretrain a two-view joint-embedding
+SSL encoder on unlabeled EEG, freeze it, and linear-probe **normal vs abnormal** on
+TUAB. (We say "JEPA" loosely, after LeJEPA: the model is a *symmetric Siamese*
+augmentation-invariance + anti-collapse objective — **no predictor, no EMA/target
+encoder, no latent prediction**.) The contribution is a **controlled study of where
+the anti-collapse
 regulariser should live** — ambient Euclidean vs the tangent space of the EEG
 covariance SPD manifold — and **which mechanism wins there**: SIGReg (assumes an
 isotropic-Gaussian target) vs PEIRA (distribution-free, the principled fit for a
@@ -19,7 +22,10 @@ Built on a trimmed vendor of [`eb_jepa`](https://github.com/facebookresearch/eb_
 | 2 | `peira`  | `tangent` | distribution-free anti-collapse on the manifold |
 
 Reference arms: `vicreg/ambient` (eb_jepa default), plus the 0-param classical
-**Riemannian baseline** (`baseline_riemann.py`, ~0.86 acc on TUH Abnormal).
+**Riemannian baseline** (`baseline_riemann.py`, **0.761 BalAcc** here on TUAB —
+below our random floor). Gemein et al. 2020 report ~0.86 *accuracy* with a
+filter-bank: different metric, protocol and features, **not comparable** to our
+balanced-accuracy number.
 
 ## Quickstart (on the cluster)
 ```bash
@@ -111,6 +117,7 @@ python -m examples.eeg.tuev_probe \
 - We are **not** a foundation model and **not** SOTA in 24h. SIGReg-for-EEG
   (Laya) and Riemannian-SSL-for-EEG (EEG-ReMinD, reconstruction) already exist —
   cite them as parents. Our claim is the **intersection**: geometry-aware,
-  *latent-predictive*, distribution-free anti-collapse on the SPD tangent.
+  joint-embedding (LeJEPA-style — *not* latent-predictive; no predictor/EMA target),
+  distribution-free anti-collapse on the SPD tangent.
 
 See `tasks/todo.md` for the full plan, baselines, targets, and division.

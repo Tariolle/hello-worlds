@@ -2,10 +2,13 @@
 
 Per recording: spatial channel covariance of each 10 s window -> Euclidean mean
 -> one SPD matrix; project all recordings to the tangent space at their
-Riemannian mean (pyRiemann) -> standardize -> logistic regression. On TUH
-Abnormal this reaches ~0.86 accuracy with NO deep network (Gemein et al. 2020),
-so it (a) sanity-checks the EDF data pipeline before any GPU run and (b) is the
-complexity reference the JEPA frozen probe is measured against.
+Riemannian mean (pyRiemann) -> standardize -> logistic regression. Gemein et al.
+(2020) report ~0.86 *accuracy* with a filter-bank variant; THIS minimal 16-window
+broadband variant measures **0.761 balanced accuracy** on TUAB (below the
+random-encoder floor — TUAB abnormality is band-power-driven, and the 0.86 number
+is a different metric/protocol/features, not comparable). It (a) sanity-checks the
+EDF data pipeline before any GPU run and (b) is the 0-param complexity reference
+the frozen probe is measured against.
 
 The baseline follows the same labelled dataset conventions as ``eval.py``:
 TUAB binary folders by default, or arbitrary diagnosis folders via

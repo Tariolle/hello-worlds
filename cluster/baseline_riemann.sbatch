@@ -1,6 +1,8 @@
 #!/bin/bash
-# Classical Riemannian baseline = the 0-param yardstick (~0.86 acc on TUAB) AND a
-# real-pipeline sanity check (reads all 2993 .edf via pyedflib). CPU job, ~15-30 min.
+# Classical Riemannian baseline = the 0-param yardstick (0.761 BalAcc here on TUAB;
+# Gemein 2020 report ~0.86 ACCURACY with a filter-bank, different protocol -- not
+# comparable) AND a real-pipeline sanity check (reads all 2993 .edf via pyedflib).
+# CPU job, ~15-30 min.
 # Submit from the repo root:  sbatch cluster/baseline_riemann.sbatch
 #SBATCH --partition=defq
 #SBATCH --reservation=Vivatech
