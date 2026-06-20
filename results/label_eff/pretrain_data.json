@@ -1,24 +1,11 @@
 {
+  "seeds_used": [1, 1000, 10000],
+  "note": "Multi-seed pretrain-data efficiency. frac=1.0 has 2 seeds pending job 75608 (slow node dalianvl05); refresh on completion.",
   "rows": [
-    {
-      "frac": 0.05,
-      "balacc": 0.821
-    },
-    {
-      "frac": 0.1,
-      "balacc": 0.7937
-    },
-    {
-      "frac": 0.25,
-      "balacc": 0.8024
-    },
-    {
-      "frac": 0.5,
-      "balacc": 0.8256
-    },
-    {
-      "frac": 1.0,
-      "balacc": 0.8322
-    }
+    { "frac": 0.05, "balacc": 0.8197, "std": 0.0098, "seeds": 3 },
+    { "frac": 0.1,  "balacc": 0.8063, "std": 0.0090, "seeds": 3 },
+    { "frac": 0.25, "balacc": 0.8132, "std": 0.0140, "seeds": 3 },
+    { "frac": 0.5,  "balacc": 0.8240, "std": 0.0037, "seeds": 3 },
+    { "frac": 1.0,  "balacc": 0.8239, "std": 0.0083, "seeds": 2 }
   ]
 }
