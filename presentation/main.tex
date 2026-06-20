@@ -69,10 +69,10 @@
 \begin{frame}{Our contribution, in one slide}
   \small
   \begin{enumerate}
-    \item \textbf{A strong frozen baseline.} SIGReg-ambient JEPA matches the LeJEPA/Laya recipe's value on our setup (pipeline-helped: organizers' preprocessing $+$ \texttt{eb\_jepa} dataloader/losses) -- not a controlled head-to-head with Laya.
-    \item \textbf{A broad ablation that does not beat it.} Ambient/tangent SIGReg, ambient/tangent PEIRA, Graph-JEPA, Fourier-JEPA -- none improves balanced accuracy beyond noise ($\leq 0.013$). Ambient SIGReg is hard to beat.
-    \item \textbf{Latent geometry is the methods contribution.} Our latent separates normal/abnormal $\sim$2$\times$ better than random on TUAB; we visualise it with \textbf{de Surrel's AIRM Riemannian t-SNE} -- the principled metric for SPD/EEG covariances -- which gives a small, \emph{consistent} edge over classical t-SNE \emph{where cluster structure exists}. Tangent training yields the \emph{best} covariance-latent silhouette (TUAB \& TUSZ), though \emph{not} better balanced accuracy -- the geometry objective sharpens the geometry, not the task.
-    \item \textbf{Rigor over spin.} We report the limits: \emph{decodable $\ne$ clustered} (TUEV), \emph{sustained vs transient}, the AIRM edge within noise. An honest negative beats a fragile positive.
+    \item \textbf{A strong frozen baseline.} SIGReg-ambient JEPA matches the LeJEPA/Laya recipe's value on our (pipeline-helped) setup -- not a controlled head-to-head.
+    \item \textbf{Nothing beats it.} Ambient/tangent SIGReg \& PEIRA, Graph-JEPA, Fourier-JEPA -- none beats ambient SIGReg in balanced accuracy (gaps $\leq 0.013$).
+    \item \textbf{Latent geometry is the contribution.} Ours separates normal/abnormal $\sim$2$\times$ better than random, visualised with \textbf{de Surrel's AIRM Riemannian t-SNE} (the right metric for SPD/EEG covariances). Tangent sharpens the \emph{geometry} (best cov-latent silhouette), not the task.
+    \item \textbf{Rigor over spin.} The limits we report -- \emph{decodable $\ne$ clustered}, sustained vs transient, AIRM edge within noise. An honest negative beats a fragile positive.
   \end{enumerate}
 \end{frame}
 
@@ -185,7 +185,7 @@
   \end{center}
   \vspace{-0.4em}
   \begin{center}\footnotesize
-    30 epochs, TUAB pretrain (seed 1). All five cells converge; the \emph{shared} invariance loss falls everywhere; \textbf{no cell collapses} -- eff.\ rank rises throughout, feat.\ std stays ${\approx}1$ (PEIRA runs at lower std \emph{by design}, not collapse). PEIRA satisfies anti-collapse \emph{harder} (eff.\ rank ${\sim}3\times$ higher) yet wins nothing downstream: collapse is not the binding constraint on TUAB. Total loss is not comparable across objectives (PEIRA's log-det term goes negative) -- read per-curve shape.
+    30 epochs, TUAB pretrain. All five cells converge and \textbf{none collapses} (eff.\ rank rises, feat.\ std ${\approx}1$). PEIRA satisfies anti-collapse \emph{harder} ($\sim3\times$ the eff.\ rank) yet wins nothing downstream -- collapse is not the binding constraint on TUAB. (Total loss is not comparable across objectives -- read per-curve shape.)
   \end{center}
 \end{frame}
 
@@ -228,7 +228,6 @@
 
 
 % ==========================================================
-\appendix
 \section{Clustering}
 % ==========================================================
 
@@ -245,28 +244,25 @@
   \end{center}
 \end{frame}
 
-\begin{frame}{Appendix: manifold-aware latent geometry (AIRM vs Euclidean)}
+\begin{frame}{Manifold-aware latent geometry (AIRM vs Euclidean)}
   \vspace{-0.2em}
   \begin{center}
     \includegraphics[width=\textwidth]{riemann_latent.png}
   \end{center}
   \vspace{-0.35em}
   \begin{center}\footnotesize
-    The frozen SPD covariance latent embedded two ways: Euclidean (tangent) t-SNE vs
-    \textbf{AIRM Riemannian t-SNE} (de Surrel's \texttt{rtsne}) onto the hyperbolic Poincar\'e
-    disk. \textbf{AIRM $\ge$ Euclidean silhouette for \emph{every} encoder} (ours $0.052$ vs
-    $0.049$; SIGReg-tan $0.057$ vs $0.055$; random $0.032$) -- the latent genuinely lives on the
-    SPD manifold, so respecting its geometry (de Surrel's premise) reveals slightly more
-    structure than flattening. \textbf{SIGReg is load-bearing}: the trained cells separate
-    ${\sim}1.6\times$ better than random-init -- the anti-collapse objective is what makes the
-    latent geometrically meaningful, not the backbone. \emph{Honest scope:} the AIRM gain is
-    small and the linear-probe ranking is unchanged -- geometry sharpens the \emph{picture}, not
-    the accuracy. The negative stands; the latent geometry is real, clean, and visualizable.
+    Frozen SPD covariance latent, two embeddings: Euclidean (tangent) t-SNE vs \textbf{AIRM
+    Riemannian t-SNE} (de Surrel's \texttt{rtsne}, hyperbolic Poincar\'e disk).
+    \textbf{AIRM $\ge$ Euclidean for every encoder} (ours $0.052$/$0.049$; SIGReg-tan
+    $0.057$/$0.055$; random $0.032$) -- the latent lives on the SPD manifold. \textbf{SIGReg is
+    load-bearing} (trained cells separate ${\sim}1.6\times$ better than random). \emph{Honest
+    scope}: the AIRM gain is small and the probe ranking is unchanged -- geometry sharpens the
+    picture, not the accuracy.
   \end{center}
   {\tiny $^\dagger$ The tangent payoff is \emph{SIGReg-specific}: SIGReg-tangent gives the best cov-latent silhouette on both TUAB (0.057) and TUSZ (0.085); PEIRA-tangent does \emph{not} -- it flips by dataset, is weakest on TUSZ (AIRM 0.033), and PEIRA-ambient also wins balanced accuracy. The gain is tied to the isotropic-Gaussian (SIGReg) objective, not to ``going tangent''.}
 \end{frame}
 
-\begin{frame}{Appendix: manifold viz across TUH tasks -- sustained vs transient}
+\begin{frame}{Manifold viz across TUH tasks -- sustained vs transient}
   \scriptsize
   \begin{columns}[T]
     \column{0.5\textwidth}\centering
@@ -300,11 +296,11 @@
   {\tiny $^\dagger$ A \emph{label-optimal} projection (shrinkage-LDA, train$\to$eval) still does not cluster the classes (sup.\ silhouette ${\approx}0$) -- confirming \emph{decodable $\ne$ clustered}; the signal is a linear gradient, not separated modes.}
 \end{frame}
 
-\begin{frame}{Appendix: caveats we disclose to the jury}
+\begin{frame}{Caveats we disclose to the jury}
   \footnotesize
   \begin{itemize}
     \item \textbf{Report \ba{}, not \babest{}.} The single-seed \babest{} (SIGReg-ambient, seed 1) was the \emph{top} of that cell's range; the 3-seed mean is \ba{}.
-    \item \textbf{SIGReg slice-seed bug (found, now fixed).} The reported 3-seed SIGReg numbers were produced by code that seeded \texttt{BCS} slice directions from a per-step counter (run-seed-independent), so the 3 seeds shared a byte-identical slice schedule -- the error bars \emph{understate} true variance. The code is now fixed (\texttt{losses.py} draws slices from the run-seeded RNG); the reported numbers predate the fix and were deliberately not re-run.
+    \item \textbf{SIGReg slice-seed bug (found, fixed).} \texttt{BCS} seeded slice directions per-step, so the 3 SIGReg seeds shared one slice schedule -- error bars \emph{understate} variance. Now fixed (run-seeded RNG); the reported numbers predate the fix, not re-run.
     \item \textbf{PEIRA tangent (0.807) is not evidence against wrapped-Gaussian.} PEIRA is distribution-free $\Rightarrow$ immune to the isotropic-target mis-specification $\Rightarrow$ it never tests that hypothesis. $0.807$ vs $0.815$ is within noise.
     \item \textbf{Bootstrap CI (illustrative, not yet run).} A bootstrap over the \nrecev{} eval recordings would plausibly give a $\pm0.02$--$0.03$ CI -- wider than the max inter-cell gap (0.013) -- supporting ``benchmark-resolution-limited''. The resampling is not yet committed.
     \item \textbf{Preprocessing differs} from the published FM rows -- the head-to-head is indicative, not a controlled re-run of their pipelines.
