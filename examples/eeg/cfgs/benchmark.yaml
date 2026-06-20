@@ -42,6 +42,17 @@ local_methods:
     comparable_to_local_jepa: true
     notes: "Laya-like local baseline: SIGReg in Euclidean pooled-representation space."
 
+  - id: jepa_fourier_sigreg_ambient
+    display_name: "Fourier-JEPA SIGReg ambient"
+    family: "This repo"
+    status: pending_training
+    reg_type: sigreg
+    reg_space: ambient
+    checkpoint: checkpoints/eeg_fourier_sigreg_ambient/latest.pth.tar
+    seed: 1
+    comparable_to_local_jepa: true
+    notes: "Fourier-JEPA: STFT log-power spectral-stem encoder (FourierEEGEncoder1D) in place of the conv EEGEncoder1D. Identical SIGReg-ambient objective, seed, data and frozen probe as jepa_sigreg_ambient -- isolates the effect of a Fourier/spectral front-end for short EEG windows."
+
   - id: jepa_sigreg_tangent
     display_name: "JEPA SIGReg tangent"
     family: "This repo"
