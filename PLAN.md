@@ -11,10 +11,12 @@ ranges overlap). We pivot the **framing**, not the codebase.
 
 - **Contribution axis = generality under a *frozen* encoder + label/data
   efficiency** — not "geometry wins".
-- **We claim:** a frozen in-domain JEPA whose linear-probe (**0.819 BA / ~0.90
-  AUROC, 3 seeds**) is competitive with the TUAB *fine-tuning* literature and
-  **above typical frozen FM baselines** — which **collapse when frozen** (LaBraM
-  0.604 / CBraMod 0.547 in our consistent linear-probe) while ours holds ~0.82.
+- **We claim:** a frozen JEPA whose linear-probe holds **~0.82** — whether pretrained
+  **in-domain** (TUAB→TUAB **0.819**, 3 seeds) or on a **general TUH corpus** (TUSZ,
+  ex-TUAB-eval patients → frozen TUAB **0.814**, apples-to-apples, 1 seed) —
+  competitive with the TUAB *fine-tuning* literature and **far above every FM frozen**
+  (EEG-FM-Bench, arXiv 2508.17742: CBraMod 0.547 / LaBraM 0.604 / EEGPT 0.766 /
+  BIOT 0.780). The in-domain advantage is **not** the driver.
 - **We do NOT claim** a world model, a foundation model, or SOTA. Single-dataset
   specialization ≠ generality. Framed as a **controlled frozen-transfer study**;
   we say **"match while frozen"**, never "beat" (the FMs are fine-tuned).

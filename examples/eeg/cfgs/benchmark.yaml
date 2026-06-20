@@ -78,10 +78,13 @@ local_methods:
   - id: riemann_tangent_logreg
     display_name: "Riemannian covariance + logistic probe"
     family: "Classical baseline"
-    status: runnable_local
+    status: measured_local
     comparable_to_local_jepa: true
     command: "python -m examples.eeg.baseline_riemann --data-root <TUAB_PREPROCESSED>"
-    notes: "0-parameter complexity yardstick; supports TUAB and folder-labelled diagnosis datasets."
+    balanced_acc: 0.761
+    auroc: 0.810
+    metric_source: "local_run"
+    notes: "0-parameter complexity yardstick (pyRiemann channel-cov + AIRM tangent + logistic), supports TUAB and folder-labelled diagnosis datasets. Minimal broadband variant: 19-channel covariance of per-channel z-scored 10s windows (diagonal ~ 1, so power-blind) averaged over 16 windows; lands BELOW the random-encoder floor because TUAB abnormality is band-power-driven. NOT comparable to Gemein 2020's filter-bank ~0.86 ACCURACY (different metric, protocol, and features); reported here as balanced accuracy."
 
   - id: random_encoder_floor
     display_name: "Random EEGEncoder1D floor"

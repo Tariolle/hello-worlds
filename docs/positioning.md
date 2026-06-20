@@ -35,6 +35,34 @@ power features, so several published "foundation-model" frozen numbers barely cl
 
 **Honest read:** 0.819 is **at the top of the frozen linear-probe results** (≈ REVE-linear; clearly above LaBraM-linear / EEG2Rep / BIOT / EEGPT) and at the **lower edge of the fine-tuned BA band**. AUROC ~0.90 is above BIOT/EEGPT but **below** CBraMod/REVE (~0.92). Very competitive at the operating point, not top at ranking, **not SOTA**.
 
+## Apples-to-apples: general-pretrain, STILL frozen — the upgrade (lead with this)
+"You pretrained on TUAB, the FMs didn't — unfair" is the obvious attack on the in-domain number. So we
+ran the fair version: pretrain SIGReg on **TUSZ** (TUH Seizure corpus = general TUH EEG, **TUAB-eval
+patients excluded** → patient-disjoint), freeze, linear-probe TUAB — the FMs' own regime (general
+pretrain → frozen TUAB), without our in-domain edge.
+> **Result: 0.814 BA / 0.889 AUROC** (1 seed) — essentially equal to in-domain **0.819**. The in-domain
+> advantage was NOT the driver; we hold general-pretrained too.
+
+Caveats: TUSZ is general **same-site** TUH (not multi-site like the FMs); single seed (in-domain is 3-seed).
+
+## Frozen head-to-head — EEG-FM-Bench numbers (cite, NOT re-measured)
+Frozen linear probe, TUAB balanced accuracy, quoted from **EEG-FM-Bench (Cui et al., arXiv 2508.17742, Table 1)**:
+
+| Frozen FM | BA | | reference | BA |
+|---|---:|---|---|---:|
+| CBraMod | 0.547 | | BENDR | 0.666 |
+| LaBraM | 0.604 | | EEGPT | 0.766 |
+| BIOT | 0.780 | | random floor (ours) | ~0.79 |
+| | | | **ours — in-domain / general** | **0.819 / 0.814** |
+
+Two honest reads: (1) our **random floor (0.79) already beats every frozen FM** — TUAB frozen rewards
+band-power and FM tokenizers are probe-hostile to it; (2) the **inversion** — the more an FM is tuned for
+fine-tuning SOTA, the harder it collapses frozen (CBraMod, recent SOTA, is the *most* collapsed at 0.547).
+Cross-task echo on **TUEV** (6-class, frozen): ours **0.425 > LaBraM 0.315 / CBraMod 0.211 / BENDR 0.167**,
+~BIOT 0.437, < EEGPT 0.498 (EEG-FM-Bench) — but ⚠️ TUEV-eval patient-disjointness vs our TUAB-train pretrain
+is **unverified** (anonymised eval IDs); the FMs saw TUEG⊇TUEV, so they had *more* TUEV exposure, not us.
+Figures: `results/benchmark/frozen_headtohead{,_tuev}.png`.
+
 ## The negative result — now 3-seed, with precedent
 Our 2×2 × 3 seeds is a **clean null**: tangent-SPD and PEIRA do not beat ambient SIGReg (~0.82 everywhere; ranges overlap). The Deep Research found this has precedent **in spirit**:
 - **No direct prior art** for "anti-collapse regulariser in the tangent-SPD of covariances inside a JEPA" → our ablation is novel.
@@ -49,14 +77,17 @@ There is **no published TUAB-specific Bayes ceiling**. TUH claims 97–100% inte
 ## Jury-safe contribution (the boxed claim)
 > Domain-matched JEPA pretraining on TUAB yields a frozen encoder whose linear-probe performance
 > (**0.819 BA / ~0.90 AUROC, 3 seeds**) is competitive with the TUAB fine-tuning literature and
-> **stronger than typical published frozen-probe baselines**. In a controlled 2×2 ablation (3 seeds),
+> **stronger than typical published frozen-probe baselines**. This is **not an in-domain artifact**:
+> pretraining on a *general* TUH corpus (TUSZ, patient-disjoint from TUAB-eval) and probing TUAB frozen
+> still gives **0.814 BA** — and both numbers sit far above every foundation model evaluated frozen
+> (EEG-FM-Bench: 0.55–0.78). In a controlled 2×2 ablation (3 seeds),
 > **neither PEIRA nor a geometry-aware tangent-SPD anti-collapse variant improved over an ambient
 > SIGReg baseline** — on TUAB frozen abnormality detection, extra geometric sophistication is not
 > automatically rewarded. We give a geometric reason (wrapped-Gaussian mis-specification of the naive
 > tangent, de Surrel 2025) and flag the principled fix as future work.
 
 ## DO / DON'T claim
-**DO:** strongest among published frozen/linear-probe TUAB baselines; in the FT BA band; clean 3-seed null on geometry/PEIRA; in-domain SSL is the (disclosed) reason it is strong.
+**DO:** strongest among published frozen/linear-probe TUAB baselines; in the FT BA band; clean 3-seed null on geometry/PEIRA; **hold ~0.81–0.82 frozen even when general-pretrained (TUSZ→TUAB 0.814), above every FM frozen (EEG-FM-Bench 0.55–0.78)**; the SSL increment over the random floor (~+0.03–0.04) is real and disclosed.
 **DON'T:** "SOTA on TUAB" (AUROC below best; in-domain advantage; preprocessing differs); "we beat CBraMod/LaBraM" (they are fine-tuned → say "match while frozen"); "tangent-SPD is useless for EEG" (only "no benefit in our TUAB frozen pilot"); "TUAB is saturated at X".
 
 ## If we push geometry later (future work)
