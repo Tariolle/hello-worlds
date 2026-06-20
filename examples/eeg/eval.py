@@ -20,6 +20,7 @@ import torch
 from omegaconf import OmegaConf
 
 from eb_jepa.datasets.eeg.dataset import EEGConfig, EEGDataset
+from examples.eeg.geometry import tangent_features
 from examples.eeg.main import build_encoder
 
 
@@ -32,6 +33,8 @@ def extract_features(encoder, split, device, data_cfg=None, pool="mean"):
       * "mean"    -> time-mean only                 -> [N_rec, D]   (default)
       * "meanstd" -> concat(time-mean, time-std)    -> [N_rec, 2D]  (ablation: keeps
                      second-order temporal structure, abnormality is power/variance-driven)
+      * "tangent" -> Log-Euclidean SPD tangent covariance features from encoder.cov_features
+                     -> [N_rec, d_cov(d_cov+1)/2]
     """
     cfg = EEGConfig(**(data_cfg or {}))
     cfg.split, cfg.mode = split, "probe"
@@ -45,6 +48,8 @@ def extract_features(encoder, split, device, data_cfg=None, pool="mean"):
         if pool == "meanstd":
             fm = encoder.feature_map(flat)                              # [B*N, D, T']
             zz = torch.cat([fm.mean(dim=-1), fm.std(dim=-1)], dim=1)    # [B*N, 2D]
+        elif pool == "tangent":
+            zz = tangent_features(encoder.cov_features(flat))           # [B*N, d_cov(d_cov+1)/2]
         else:
             zz = encoder.represent(flat)                               # [B*N, D]
         z = zz.reshape(B, N, -1).mean(dim=1).cpu().numpy()             # [B, D or 2D]
@@ -79,7 +84,10 @@ def main():
 
     state = torch.load(ckpt, map_location=device, weights_only=False)
     cfg = OmegaConf.create(state["cfg"])
-    data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
+    import dataclasses
+    _tuab_keys = {f.name for f in dataclasses.fields(EEGConfig)}
+    data_cfg = {k: v for k, v in OmegaConf.to_container(cfg.data, resolve=True).items()
+                if k in _tuab_keys}
 
     encoder = build_encoder(cfg.model).to(device)
     encoder.load_state_dict(state["encoder"]); encoder.eval()

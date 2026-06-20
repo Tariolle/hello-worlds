@@ -40,7 +40,9 @@ from omegaconf import OmegaConf
 
 from eb_jepa.datasets.eeg.dataset import EEGConfig, make_loader
 from eb_jepa.losses import BCS
+from examples.eeg.combined_dataset import make_combined_loader
 from examples.eeg.encoder import EEGEncoder1D
+from examples.eeg.freq_aug import random_freq_aug
 from examples.eeg.geometry import collapse_metrics
 from examples.eeg.main import Projector, build_encoder
 
@@ -106,7 +108,9 @@ class EEGIJEPAModule(nn.Module):
     def __init__(self, encoder, cfg):
         super().__init__()
         s = cfg.ssl
-        self.mask_ratio = s.get("mask_ratio", 0.4)
+        self.mask_ratio      = s.get("mask_ratio", 0.4)
+        self.freq_mask_p     = s.get("freq_mask_p", 0.0)
+        self.freq_mask_bands = s.get("freq_mask_bands", 1)
 
         d = encoder.out_dim
         proj_spec = s.get("proj", "512-512-256")
@@ -141,8 +145,12 @@ class EEGIJEPAModule(nn.Module):
     def compute_loss(self, batch, return_extras=False):
         v1, v2 = batch  # both lightly augmented by the dataloader
 
-        # Context view: extra heavy masking on v1
+        # Context view: temporal masking + optional frequency-band masking
         v_ctx = apply_temporal_mask(v1, self.mask_ratio)
+        if self.freq_mask_p > 0:
+            v_ctx = random_freq_aug(v_ctx, sfreq=200.0,
+                                    p_mask=self.freq_mask_p,
+                                    n_bands=self.freq_mask_bands)
 
         # Online forward on both views (for anti-collapse BCS)
         z1 = self.proj_online(self.enc_online.represent(v_ctx))   # [B, p]
@@ -186,9 +194,12 @@ def run(fname="examples/eeg/cfgs/train_ijepa.yaml", cfg=None, **overrides):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(cfg.meta.seed)
 
-    dcfg = EEGConfig(**OmegaConf.to_container(cfg.data, resolve=True))
-    dcfg.mode = "ssl"
-    loader = make_loader(dcfg)
+    if cfg.data.get("tuev_root", None):
+        loader = make_combined_loader(cfg)
+    else:
+        dcfg = EEGConfig(**OmegaConf.to_container(cfg.data, resolve=True))
+        dcfg.mode = "ssl"
+        loader = make_loader(dcfg)
 
     encoder = build_encoder(cfg.model).to(device)
     model   = EEGIJEPAModule(encoder, cfg.model).to(device)

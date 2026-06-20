@@ -58,6 +58,7 @@ def build_encoder(cfg):
         d_cov=e.d_cov,
         kernel=e.get("kernel", 7),
         stride=e.get("stride", 2),
+        pool_type=e.get("pool_type", "mean"),
     )
 
 
