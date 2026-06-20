@@ -14,8 +14,14 @@ dependencies = [
     "wandb",
     "pyedflib",
     "pyriemann>=0.6",
+    "mne",
     "matplotlib",
     "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
 ]
 
 # NOTE on torch: install the wheel matching the cluster CUDA. On aarch64 (GB200)
@@ -28,4 +34,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["eb_jepa*", "examples*"]
+include = ["eb_jepa*", "examples*", "src*"]

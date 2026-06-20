@@ -42,6 +42,51 @@ Artifacts are written under `results/benchmark/`. See
 `docs/eeg_benchmark_tutorial.md` for the human and agent workflow, including how
 to add trained checkpoints later with `--checkpoint METHOD_ID=PATH`.
 
+## TCP-Graph-JEPA anomaly detection
+The repo also includes a graph-based JEPA anomaly detector for TUH/TUAB-style
+normal/abnormal EEG:
+
+- the 22 TCP bipolar derivations are graph nodes,
+- graph edges combine shared-electrode continuity and contralateral symmetry,
+- the model masks channel-time tokens and predicts latent embeddings, not raw EEG,
+- anomaly score = failure of spatial-temporal latent predictability,
+- outputs include file/window scores and channel x time heatmaps.
+
+Expected model input is `[batch, 22, time_steps, feature_dim]`, defaulting to
+about 70 frames for 7 s windows and five log-bandpower features
+`delta/theta/alpha/beta/gamma`. Pre-extracted `.pt/.pth/.npy/.npz` tensors are
+used directly. Raw EDFs are optionally preprocessed with MNE: EDF load, resample,
+0.5-70 Hz filter, optional 60 Hz notch, TCP bipolar construction, 7 s windows,
+and log-bandpower features.
+
+Train self-supervised on normal windows:
+
+```bash
+python train_graph_jepa.py --config configs/graph_jepa.yaml
+```
+
+Evaluate file-level anomaly scores:
+
+```bash
+python evaluate_graph_jepa.py \
+  --checkpoint checkpoints/tcp_graph_jepa/latest.pth.tar \
+  --data-root <TUAB_OR_FEATURE_ROOT> \
+  --split eval \
+  --output-dir results/graph_jepa_eval
+```
+
+Visualize one EDF or tensor file:
+
+```bash
+python visualize_graph_jepa.py \
+  --checkpoint checkpoints/tcp_graph_jepa/latest.pth.tar \
+  --edf_or_tensor <file.edf_or_tensor> \
+  --output_dir results/graph_jepa_viz
+```
+
+For a quick CPU debug run, point `configs/graph_jepa.yaml` at a tiny tensor
+dataset and use `--limit-batches 2`.
+
 ## What we measure
 Frozen **linear-probe balanced accuracy + AUROC on the full 2717/276 split**,
 recording level — plus collapse diagnostics (effective rank, per-dim std,
