@@ -44,6 +44,7 @@ class EEGConfig:
     n_channels: int = 19
     sfreq: int = 200               # Hz (TUAB_PREPROCESSED)
     window_sec: float = 10.0       # window length in seconds
+    normalize: bool = True         # per-channel z-score each window; False -> raw uV (power baselines)
     epoch_size: int = 20000        # virtual samples per epoch (random windows, ssl)
     n_windows: int = 16            # evenly-spaced windows per recording (probe mode)
     batch_size: int = 128
@@ -202,7 +203,7 @@ class EEGDataset(torch.utils.data.Dataset):
                 continue  # corrupt payload (header OK): skip + retry, don't crash the worker
             finally:
                 f._close()
-            return _zscore(x, axis=1)
+            return _zscore(x, axis=1) if cfg.normalize else x
         return None
 
     def _read_recording_windows(self, path) -> Optional[np.ndarray]:
@@ -227,7 +228,7 @@ class EEGDataset(torch.utils.data.Dataset):
             return None
         finally:
             f._close()
-        return _zscore(wins, axis=2)
+        return _zscore(wins, axis=2) if cfg.normalize else wins
 
     # ------------------------------------------------------------------ #
     # SSL augmentation
