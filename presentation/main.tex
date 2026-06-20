@@ -228,21 +228,10 @@
 
 
 % ==========================================================
-\section{Clustering}
+\section{Visualization}
 % ==========================================================
 
 
-
-\begin{frame}{Frozen latent space (ours vs random vs geometry)}
-  \vspace{-0.2em}
-  \begin{center}
-    \includegraphics[width=\textwidth]{latent_compare.png}
-  \end{center}
-  \vspace{-0.3em}
-  \begin{center}\footnotesize
-    t-SNE and UMAP of frozen \texttt{represent} features on the eval set -- same frozen ambient readout for all four. Silhouette (full-dim, the actual metric): SIGReg-ambient (ours) $0.051$ vs random-init $0.021$ ($\sim2\times$); SPD-tangent and PEIRA sit \emph{between} -- geometry does not beat ambient. All modest, consistent with the $\sim{+}0.04$ probe gain. (The 2-D maps are illustrative; the random-init floor has no fixed seed, so it varies $0.021$--$0.027$ run-to-run.)
-  \end{center}
-\end{frame}
 
 \begin{frame}{Manifold-aware latent geometry (AIRM vs Euclidean)}
   \vspace{-0.2em}
