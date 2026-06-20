@@ -38,7 +38,7 @@
 \newcommand{\ba}{0.819}                % 3-seed mean balanced accuracy
 \newcommand{\babest}{0.833}            % best-seed balanced accuracy
 \newcommand{\aurocv}{0.89}             % 3-seed mean AUROC (0.891; best seed 0.90) -- see results/benchmark/jepa_eval_seeds.json
-\newcommand{\floorv}{0.79}             % random-encoder floor
+\newcommand{\floorv}{0.79}             % random-init-encoder floor
 \newcommand{\riem}{0.761}              % Riemannian 0-param yardstick
 \newcommand{\nrectr}{2{,}717}          % train recordings
 \newcommand{\nrecev}{276}              % eval recordings
@@ -71,7 +71,7 @@
   \begin{enumerate}
     \item \textbf{A strong frozen baseline.} SIGReg-ambient JEPA matches the LeJEPA/Laya recipe's value on our (pipeline-helped) setup -- not a controlled head-to-head.
     \item \textbf{Nothing beats it.} Ambient/tangent SIGReg \& PEIRA, Graph-JEPA, Fourier-JEPA -- none beats ambient SIGReg in balanced accuracy (gaps $\leq 0.013$).
-    \item \textbf{Latent geometry is the contribution.} Ours separates normal/abnormal $\sim$2$\times$ better than random, visualised with \textbf{de Surrel's AIRM Riemannian t-SNE} (the right metric for SPD/EEG covariances). Tangent sharpens the \emph{geometry} (best cov-latent silhouette), not the task.
+    \item \textbf{Latent geometry is the contribution.} Ours separates normal/abnormal $\sim$2$\times$ better than the random-init encoder, visualised with \textbf{de Surrel's AIRM Riemannian t-SNE} (the right metric for SPD/EEG covariances). Tangent sharpens the \emph{geometry} (best cov-latent silhouette), not the task.
     \item \textbf{Rigor over spin.} The limits we report -- \emph{decodable $\ne$ clustered}, sustained vs transient, AIRM edge within noise. An honest negative beats a fragile positive.
   \end{enumerate}
 \end{frame}
@@ -196,8 +196,9 @@
   \end{center}
   \vspace{-0.3em}
   \begin{center}\footnotesize
-    Frozen linear probe, TUAB held-out patients. \textbf{Ours \ba{}} (3-seed) sits above the random floor and every frozen FM baseline; fine-tuned FMs (green band) are an \emph{easier}, non-comparable setting.
+    Frozen linear probe, TUAB held-out patients. \textbf{Ours \ba{}} (3-seed) sits above the random-init-encoder floor and every frozen FM baseline; fine-tuned FMs (green band) are an \emph{easier}, non-comparable setting.
   \end{center}
+  {\tiny $^\dagger$ \emph{Random-init encoder} = identical architecture, weights never trained, encoder frozen; only the linear probe is fit -- it isolates the SSL contribution. Conservative floor: BatchNorm uses un-adapted init stats.}
 \end{frame}
 
 \begin{frame}{The value of self-supervision (label \& data efficiency)}
@@ -207,7 +208,7 @@
   \end{center}
   \vspace{-0.4em}
   \begin{center}\footnotesize
-    \textbf{(a)} The money plot: \emph{JEPA @ 25\% labels $\approx$ random-encoder @ 100\%} -- $\sim4\times$ label efficiency, $\sim{+}0.04$ BalAcc.\quad
+    \textbf{(a)} The money plot: \emph{JEPA @ 25\% labels $\approx$ random-init encoder @ 100\%} -- $\sim4\times$ label efficiency, $\sim{+}0.04$ BalAcc.\quad
     \textbf{(b)} Probe is stable down to small pretraining-data fractions.
   \end{center}
 \end{frame}
@@ -220,7 +221,7 @@
   \end{columns}
   \vspace{0.2em}
   \begin{itemize}\footnotesize
-    \item \textbf{Calibration}: every SSL encoder beats the random floor (ECE, selective prediction) -- geometry/PEIRA does \emph{not} beat ambient.
+    \item \textbf{Calibration}: every SSL encoder beats the random-init-encoder floor (ECE, selective prediction) -- geometry/PEIRA does \emph{not} beat ambient.
     \item \textbf{Robustness (3-seed)}: ambient SIGReg is the \emph{most} channel-dropout-robust; the SPD-tangent objective \emph{degrades} dropout-robustness; no geometry win under noise (the single-seed hint did not replicate).
     \item \textbf{The null holds on all three axes} -- accuracy, calibration, robustness. Geometry buys none of them here.
   \end{itemize}
@@ -243,8 +244,8 @@
     Frozen SPD covariance latent, two embeddings: Euclidean (tangent) t-SNE vs \textbf{AIRM
     Riemannian t-SNE} (de Surrel's \texttt{rtsne}, hyperbolic Poincar\'e disk).
     \textbf{AIRM $\ge$ Euclidean for every encoder} (ours $0.052$/$0.049$; SIGReg-tan
-    $0.057$/$0.055$; random $0.032$) -- the latent lives on the SPD manifold. \textbf{SIGReg is
-    load-bearing} (trained cells separate ${\sim}1.6\times$ better than random). \emph{Honest
+    $0.057$/$0.055$; random-init $0.032$) -- the latent lives on the SPD manifold. \textbf{SIGReg is
+    load-bearing} (trained cells separate ${\sim}1.6\times$ better than random-init). \emph{Honest
     scope}: the AIRM gain is small and the probe ranking is unchanged -- geometry sharpens the
     picture, not the accuracy.
   \end{center}
@@ -320,7 +321,7 @@
   \vspace{0.8em}
   \begin{itemize}
     \item A \textbf{controlled frozen-transfer study}, not a leaderboard entry.
-    \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen -- with the random-encoder floor honestly disclosed.
+    \item \textbf{A strong frozen probe} (\ba{} BA, $\sim$\aurocv{} AUROC) that holds where published FMs collapse when frozen -- with the random-init-encoder floor honestly disclosed.
     \item \textbf{A clean, pre-registered negative result}: \emph{where} anti-collapse acts (ambient vs SPD-tangent) and \emph{which} regulariser do not change frozen-probe accuracy on TUAB -- with a geometric reason why.
     \item \textbf{The null is multi-axis}: geometry/PEIRA help neither accuracy, nor calibration, nor robustness (3 seeds) -- and it holds even \emph{general}-pretrained (TUSZ $\to$ frozen TUAB, 0.814).
     \item \textbf{Honesty as the headline}: an honest negative beats a fragile positive.
