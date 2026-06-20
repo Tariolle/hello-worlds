@@ -52,7 +52,13 @@ class PEIRALoss(nn.Module):
         self.eta = max(self.eta_min, self.eta * self.eta_anneal)
 
     def forward(self, z1, z2):
-        self._update_stats(z1.detach(), z2.detach())
+        # Only advance the EMA second-moment buffers (and anneal eta) during
+        # training. forward() mutates persistent state, so an eval/diagnostic pass
+        # through this module would otherwise fold eval batches into Sigma/N and
+        # bias tr_P (PEIRA's only progress signal). The training loop calls this
+        # under ssl.train(), so behaviour there is unchanged.
+        if self.training:
+            self._update_stats(z1.detach(), z2.detach())
         k = self.N.shape[0]
         eye = torch.eye(k, device=z1.device, dtype=z1.dtype)
         with torch.no_grad():
