@@ -19,6 +19,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 # (label, balanced_acc, std, kind)   FM rows: EEG-FM-Bench Table 1 (frozen, TUAB)
 BARS = [
+    # Trivial classical baseline: per-channel [mean, std] (raw uV) -> StandardScaler +
+    # balanced LogReg (examples/eeg/baseline_chanstats.py). Measured on TUAB, Dalia job
+    # 78143: 0.553 BA -- barely above chance, ~CBraMod frozen. Deterministic -> no error bar.
+    ("channel mean+std (linear probe)", 0.5527, None, "baseline"),
     ("CBraMod  [FM-Bench]", 0.5473, 0.0124, "frozen_fm"),
     ("LaBraM  [FM-Bench]", 0.6040, 0.0464, "frozen_fm"),
     ("BENDR  [FM-Bench]", 0.6659, 0.0246, "frozen_fm"),
@@ -34,7 +38,8 @@ bars = sorted(BARS, key=lambda b: b[1])
 labels = [b[0] for b in bars]
 vals = [b[1] for b in bars]
 errs = [b[2] if b[2] else 0.0 for b in bars]
-cmap = {"ours": "#2f80ed", "ours_gen": "#27ae60", "frozen_fm": "#9aa5b1", "floor": "#cfd6df"}
+cmap = {"ours": "#2f80ed", "ours_gen": "#27ae60", "frozen_fm": "#9aa5b1", "floor": "#cfd6df",
+        "baseline": "#8e44ad"}
 colors = [cmap[b[3]] for b in bars]
 
 fig, ax = plt.subplots(figsize=(9.2, 4.9))
