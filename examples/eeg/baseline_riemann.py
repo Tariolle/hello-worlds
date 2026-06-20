@@ -105,16 +105,34 @@ def _recording_covariances(
     return out
 
 
-def _safe_auroc(y_true, proba, labels):
+def _safe_auroc(y_true, proba, labels, scored_labels=None):
+    """Macro one-vs-rest AUROC over classes that are both present in ``y_true``
+    and learned by the classifier. A class the model never saw (all-zero score
+    column) or with no eval support is dropped from both axes instead of
+    silently dragging the macro mean toward chance; the score is finite-guarded
+    so an undefined metric becomes ``None`` rather than a bare ``nan``. Returns
+    ``None`` when fewer than two scorable classes remain."""
     from sklearn.metrics import roc_auc_score
 
+    y_true = np.asarray(y_true)
+    labels = np.asarray(labels)
+    scored = {int(s) for s in (labels if scored_labels is None else scored_labels)}
+    keep = [int(lab) for lab in labels if int(lab) in scored and (y_true == lab).sum() > 0]
+    if len(keep) < 2:
+        return None
+    col_of = {int(lab): i for i, lab in enumerate(labels)}
+    cols = [col_of[lab] for lab in keep]
+    mask = np.isin(y_true, keep)
+    y_k, p_k = y_true[mask], proba[np.ix_(mask, cols)]
     try:
-        if len(labels) == 2:
-            return round(float(roc_auc_score(y_true, proba[:, 1])), 4)
-        return round(float(roc_auc_score(
-            y_true, proba, labels=labels, multi_class="ovr", average="macro")), 4)
+        if len(keep) == 2:
+            score = roc_auc_score((y_k == keep[1]).astype(int), p_k[:, 1])
+        else:
+            score = roc_auc_score(
+                y_k, p_k, labels=keep, multi_class="ovr", average="macro")
     except ValueError:
         return None
+    return round(float(score), 4) if np.isfinite(score) else None
 
 
 def _aligned_proba(clf, raw_proba, labels):
@@ -165,7 +183,7 @@ def fit_score_riemann(Ctr, ytr, Cev, yev, label_names=None):
         "balanced_acc": round(float(balanced_accuracy_score(yev, pred)), 4),
         "f1": round(float(f1_score(yev, pred, labels=labels, average="macro",
                                    zero_division=0)), 4),
-        "auroc": _safe_auroc(yev, proba, labels),
+        "auroc": _safe_auroc(yev, proba, labels, scored_labels=lr.classes_),
         "classes": list(label_names[:len(labels)]),
         "n_train": int(len(ytr)),
         "n_eval": int(len(yev)),

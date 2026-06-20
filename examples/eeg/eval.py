@@ -109,7 +109,7 @@ def probe(Xtr, ytr, Xev, yev, label_names=None):
         label_names = [*label_names, *[str(i) for i in labels[len(label_names):]]]
 
     sc = StandardScaler().fit(Xtr)
-    clf = LogisticRegression(max_iter=2000, class_weight="balanced")
+    clf = LogisticRegression(max_iter=3000, class_weight="balanced")
     clf.fit(sc.transform(Xtr), ytr)
     pe = clf.predict(sc.transform(Xev))
     proba = clf.predict_proba(sc.transform(Xev))

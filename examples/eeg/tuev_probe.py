@@ -238,7 +238,7 @@ def run_riemann_probe(Ctr, ytr, Cev, yev, tag):
         "n_eval": res["n_eval"],
     }
     print(f"[tuev] {tag}: {keep}", flush=True)
-    print(f"[tuev] {tag} confusion (rows=true {CLASSES}):\n"
+    print(f"[tuev] {tag} confusion (rows=true {res['classes']}):\n"
           f"{np.asarray(res['confusion_matrix'])}", flush=True)
     return res
 
