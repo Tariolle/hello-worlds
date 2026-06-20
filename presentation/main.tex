@@ -71,9 +71,10 @@
   \begin{enumerate}
     \item \textbf{A strong frozen baseline.} SIGReg-ambient JEPA matches the LeJEPA/Laya recipe's value on our (pipeline-helped) setup -- not a controlled head-to-head.
     \item \textbf{Nothing beats it.} Ambient/tangent SIGReg \& PEIRA, Graph-JEPA, Fourier-JEPA -- none beats ambient SIGReg in balanced accuracy (gaps $\leq 0.013$).
-    \item \textbf{Latent geometry is the contribution.} Ours separates normal/abnormal $\sim$2$\times$ better than the random-init encoder, visualised with \textbf{de Surrel's AIRM Riemannian t-SNE} (the right metric for SPD/EEG covariances). Tangent sharpens the \emph{geometry} (best cov-latent silhouette), not the task.
+    \item \textbf{Latent geometry is the contribution.} Ours separates normal/abnormal $\sim$2$\times$ better than the random-init encoder$^{\ast}$, visualised with \textbf{de Surrel's AIRM Riemannian t-SNE} (the right metric for SPD/EEG covariances). Tangent sharpens the \emph{geometry} (best cov-latent silhouette), not the task.
     \item \textbf{Rigor over spin.} The limits we report -- \emph{decodable $\ne$ clustered}, sustained vs transient, AIRM edge within noise. An honest negative beats a fragile positive.
   \end{enumerate}
+  {\tiny $^{\ast}$ \emph{Random-init encoder} = identical architecture, weights never trained, encoder frozen; only the linear probe is fit -- it isolates the SSL contribution.}
 \end{frame}
 
 % ==========================================================
@@ -190,15 +191,11 @@
 \end{frame}
 
 \begin{frame}{Frozen \& in-domain: we hold where frozen FMs fall}
-  \vspace{-0.2em}
+  \vfill
   \begin{center}
-    \includegraphics[height=0.74\textheight]{frozen_headtohead.png}
+    \includegraphics[width=\textwidth]{frozen_headtohead.png}
   \end{center}
-  \vspace{-0.3em}
-  \begin{center}\footnotesize
-    Frozen linear probe, TUAB held-out patients. \textbf{Ours \ba{}} (3-seed) sits above the random-init-encoder floor and every frozen FM baseline; fine-tuned FMs (green band) are an \emph{easier}, non-comparable setting.
-  \end{center}
-  {\tiny $^\dagger$ \emph{Random-init encoder} = identical architecture, weights never trained, encoder frozen; only the linear probe is fit -- it isolates the SSL contribution. Conservative floor: BatchNorm uses un-adapted init stats.}
+  \vfill
 \end{frame}
 
 \begin{frame}{The value of self-supervision (label \& data efficiency)}
