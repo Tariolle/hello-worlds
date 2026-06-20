@@ -210,18 +210,12 @@
   \end{center}
 \end{frame}
 
-\begin{frame}{Beyond accuracy: calibration \& robustness (3 axes, not 1)}
-  \vspace{0.1em}
-  \begin{columns}[c]
-    \column{0.5\textwidth}\centering\includegraphics[width=\textwidth]{calibration.png}
-    \column{0.5\textwidth}\centering\includegraphics[width=\textwidth]{robustness_3seed.png}
-  \end{columns}
-  \vspace{0.2em}
-  \begin{itemize}\footnotesize
-    \item \textbf{Calibration}: every SSL encoder beats the random-init-encoder floor (ECE, selective prediction) -- geometry/PEIRA does \emph{not} beat ambient.
-    \item \textbf{Robustness (3-seed)}: ambient SIGReg is the \emph{most} channel-dropout-robust; the SPD-tangent objective \emph{degrades} dropout-robustness; no geometry win under noise (the single-seed hint did not replicate).
-    \item \textbf{The null holds on all three axes} -- accuracy, calibration, robustness. Geometry buys none of them here.
-  \end{itemize}
+\begin{frame}{Beyond accuracy: frozen-probe robustness (3-seed)}
+  \vfill
+  \begin{center}
+    \includegraphics[width=\textwidth]{robustness_3seed.png}
+  \end{center}
+  \vfill
 \end{frame}
 
 
@@ -234,17 +228,7 @@
 \begin{frame}{Manifold-aware latent geometry (AIRM vs Euclidean)}
   \vspace{-0.2em}
   \begin{center}
-    \includegraphics[width=\textwidth]{riemann_latent.png}
-  \end{center}
-  \vspace{-0.35em}
-  \begin{center}\footnotesize
-    Frozen SPD covariance latent, two embeddings: Euclidean (tangent) t-SNE vs \textbf{AIRM
-    Riemannian t-SNE} (de Surrel's \texttt{rtsne}, hyperbolic Poincar\'e disk).
-    \textbf{AIRM $\ge$ Euclidean for every encoder} (ours $0.052$/$0.049$; SIGReg-tan
-    $0.057$/$0.055$; random-init $0.032$) -- the latent lives on the SPD manifold. \textbf{SIGReg is
-    load-bearing} (trained cells separate ${\sim}1.6\times$ better than random-init). \emph{Honest
-    scope}: the AIRM gain is small and the probe ranking is unchanged -- geometry sharpens the
-    picture, not the accuracy.
+    \includegraphics[height=0.86\textheight]{riemann_latent.png}
   \end{center}
   {\tiny $^\dagger$ The tangent payoff is \emph{SIGReg-specific}: SIGReg-tangent gives the best cov-latent silhouette on both TUAB (0.057) and TUSZ (0.085); PEIRA-tangent does \emph{not} -- it flips by dataset, is weakest on TUSZ (AIRM 0.033), and PEIRA-ambient also wins balanced accuracy. The gain is tied to the isotropic-Gaussian (SIGReg) objective, not to ``going tangent''.}
 \end{frame}
