@@ -77,6 +77,14 @@ python -m examples.eeg.eval \
 The evaluator reports accuracy, balanced accuracy, macro-F1, one-vs-rest AUROC
 when defined, per-class recall, and the confusion matrix.
 
+**You are responsible for the patient-disjoint split here.** Unlike TUAB (disjoint
+by construction), the `folders` scheme trusts whatever you put under `train/` and
+`eval/`. If recordings from the same patient land in both, the probe number is
+leaked and not comparable — keep every subject's recordings on one side only.
+Classes are resolved from the `train/` folders (or `--classes`) and reused for
+`eval/`: a diagnosis present only under `eval/` is silently ignored, so check the
+`[eeg-eval] classes` line the evaluator prints.
+
 ## Honesty rules (read before talking to the jury)
 - Report **balanced accuracy on the full split**, and state the probe head.
   Never plain accuracy on a reduced subset (that is the EEG-VJEPA number; it is

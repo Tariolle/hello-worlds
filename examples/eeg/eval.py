@@ -48,12 +48,25 @@ def extract_features(encoder, split, device, data_cfg=None, return_label_names=F
             if bool(ok[k]):                  # drop unreadable recordings
                 X.append(z[k]); y.append(int(labels[k]))
     X, y = np.stack(X), np.array(y)
+    names = list(ds.label_names or [])
+    if names:  # surface the resolved label order + per-class counts for this split
+        counts = np.bincount(y, minlength=len(names))
+        summary = ", ".join(f"{n}={int(counts[i])}" for i, n in enumerate(names))
+        print(f"[eeg-eval] {split} classes: {summary}  (n_recordings={len(y)})",
+              flush=True)
     if return_label_names:
-        return X, y, list(ds.label_names or [])
+        return X, y, names
     return X, y
 
 
 def _safe_auroc(y_true, proba, labels):
+    """One-vs-rest macro AUROC, or None when it is undefined.
+
+    Returns None (instead of raising) when a class in ``labels`` has no samples in
+    ``y_true`` or the probability columns don't line up — e.g. a diagnosis with no
+    eval recordings. The whole AUROC is then dropped rather than computed over the
+    present classes, so read None as 'not reported', not zero.
+    """
     from sklearn.metrics import roc_auc_score
 
     try:
@@ -95,8 +108,7 @@ def probe(Xtr, ytr, Xev, yev, label_names=None):
                                     zero_division=0)), 4)
     return {"acc": round(float(accuracy_score(yev, pe)), 4),
             "balanced_acc": round(float(balanced_accuracy_score(yev, pe)), 4),
-            "f1": macro_f1,
-            "macro_f1": macro_f1,
+            "f1": macro_f1,  # macro-averaged; the benchmark harness reads "f1"
             "auroc": _safe_auroc(yev, proba, labels),
             "classes": list(label_names[:len(labels)]),
             "n_train": int(len(ytr)),

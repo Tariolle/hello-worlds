@@ -20,6 +20,7 @@ live in ``examples/eeg/`` and are where the ``# TODO``s are.
 """
 import glob
 import os
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -98,6 +99,15 @@ def _list_labelled(root: str, split: str, label_scheme="tuab", class_names=None)
 
     if not label_names:
         raise FileNotFoundError(f"No class folders with .edf files under {Path(root) / split}")
+
+    if label_scheme == "folders":
+        base = Path(root) / split
+        if base.exists():  # warn rather than silently drop eval-only diagnoses
+            unused = [c for c in _infer_folder_classes(root, split) if c not in label_names]
+            if unused:
+                warnings.warn(
+                    f"{base}: .edf folders not in the class list {label_names} will be "
+                    f"ignored: {unused}", stacklevel=2)
 
     items = []
     for label, cls in enumerate(label_names):
