@@ -1,0 +1,53 @@
+seed: 0
+device: auto
+
+data:
+  root: data/TUAB_OR_FEATURES
+  train_split: train
+  val_split: eval
+  input_kind: auto          # auto | tensor | edf
+  normal_only: true         # self-supervised training defaults to normal EEG only
+  cache_in_memory: true
+  edf_windows_per_file: 32
+  normalizer_max_items: 512
+
+preprocess:
+  resample_hz: 256
+  l_freq: 0.5
+  h_freq: 70.0
+  notch_hz: 60.0
+  window_sec: 7.0
+  overlap_sec: 0.0
+  frame_hop_sec: 0.1
+  feature_window_sec: 1.0
+
+model:
+  channels: 22
+  time_steps: 70
+  feature_dim: 5
+  hidden_dim: 128
+  temporal_layers: 2
+  temporal_heads: 4
+  graph_layers: 2
+  dropout: 0.1
+  mask_ratio: 0.25
+  mask_mode: mixed          # random | channel_span | contralateral | mixed
+  loss: smooth_l1           # l1 | l2 | smooth_l1
+  max_time_steps: 256
+
+training:
+  epochs: 20
+  batch_size: 32
+  num_workers: 0
+  lr: 0.001
+  weight_decay: 0.0001
+  checkpoint_dir: checkpoints/tcp_graph_jepa
+  val_max_batches: 20
+
+eval:
+  n_masks: 8
+  mask_mode: random
+  mask_ratio: 0.25
+  error_norm: l1
+  file_aggregation: top_k_mean
+  top_k: 0.10
