@@ -22,7 +22,7 @@ from omegaconf import OmegaConf
 from eb_jepa.datasets.eeg.dataset import EEGConfig, EEGDataset
 from examples.eeg.main import build_encoder
 
-RIEMANN_BALACC = 0.761                 # our 0-param classical baseline
+RIEMANN_BALACC = 0.761                 # historical no-deep-net Riemannian baseline
 FT_BAND = (0.814, 0.829)               # fine-tuned foundation models on TUAB (LaBraM-Base .. CBraMod)
 FRACS = [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0]
 

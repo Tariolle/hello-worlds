@@ -18,14 +18,18 @@ Built on a trimmed vendor of [`eb_jepa`](https://github.com/facebookresearch/eb_
 | 1 | `sigreg` | `tangent` | geometry-aware SIGReg |
 | 2 | `peira`  | `tangent` | distribution-free anti-collapse on the manifold |
 
-Reference arms: `vicreg/ambient` (eb_jepa default), plus the 0-param classical
-**Riemannian baseline** (`baseline_riemann.py`, ~0.86 acc on TUH Abnormal).
+Reference arms: `vicreg/ambient` (eb_jepa default), plus classical CPU
+**Riemannian EEG baselines** (`baseline_riemann.py`): zero-parameter MDM on SPD
+covariance matrices and tangent-space logistic regression.
 
 ## Quickstart (on the cluster)
 ```bash
 uv venv && uv pip install -e .        # install torch matching cluster CUDA (see pyproject)
-# 0) sanity-check data + get the complexity yardstick (no GPU):
-python -m examples.eeg.baseline_riemann --data-root <TUAB_PREPROCESSED>
+# 0) sanity-check data + get the Riemannian complexity yardstick (no GPU):
+python -m examples.eeg.baseline_riemann --data-root <TUAB_PREPROCESSED> \
+  --classifier tangent-logreg --aggregation riemann
+python -m examples.eeg.baseline_riemann --data-root <TUAB_PREPROCESSED> \
+  --classifier mdm --aggregation riemann
 # 1) pretrain (edit cfgs/train.yaml: data.data_root, model.ssl.reg_*):
 python -m examples.eeg.main  --fname examples/eeg/cfgs/train.yaml
 # 2) frozen probe (held-out patients), with random-encoder floor:
@@ -81,7 +85,8 @@ layout:
 python -m examples.eeg.baseline_riemann \
   --data-root MY_DIAGNOSIS_DATASET \
   --label-scheme folders \
-  --classes normal,seizure,dementia
+  --classes normal,seizure,dementia \
+  --classifier tangent-logreg
 ```
 
 The evaluator reports accuracy, balanced accuracy, macro-F1, one-vs-rest AUROC
@@ -101,8 +106,12 @@ like TUAB:
 ```bash
 python -m examples.eeg.tuev_probe \
   --riemann-only \
-  --tuev-root <TUEV_PREPROCESSED>
+  --tuev-root <TUEV_PREPROCESSED> \
+  --riemann-classifier mdm
 ```
+
+See `docs/riemannian_eeg_approach.md` for the literature trail and exact
+covariance-manifold implementation details.
 
 ## Honesty rules (read before talking to the jury)
 - Report **balanced accuracy on the full split**, and state the probe head.

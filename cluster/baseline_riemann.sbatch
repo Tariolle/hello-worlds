@@ -1,6 +1,6 @@
 #!/bin/bash
-# Classical Riemannian baseline = the 0-param yardstick (~0.86 acc on TUAB) AND a
-# real-pipeline sanity check (reads all 2993 .edf via pyedflib). CPU job, ~15-30 min.
+# Classical Riemannian EEG baseline = covariance-manifold yardstick and a real
+# pipeline sanity check (reads all 2993 .edf via pyedflib). CPU job, ~15-30 min.
 # Submit from the repo root:  sbatch cluster/baseline_riemann.sbatch
 #SBATCH --partition=defq
 #SBATCH --reservation=Vivatech
@@ -17,4 +17,6 @@ export XDG_CACHE_HOME=$WORK/.cache
 source "$WORK/venvs/hw_aarch64/bin/activate"
 cd "$WORK/hello-worlds"
 python -u -m examples.eeg.baseline_riemann \
-  --data-root /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED
+  --data-root /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED \
+  --classifier tangent-logreg \
+  --aggregation riemann
