@@ -1,0 +1,38 @@
+{
+  "_provenance": "Frozen linear-probe eval run at the end of each pretraining job (examples/eeg eval.py, pool=mean), recovered from the cluster logs train_<job>.out. TUAB 2717/276 patient-disjoint split, recording-level (16x10s windows mean-pooled), StandardScaler(train) + balanced LogisticRegression on frozen represent() features. These are the source of the deck's headline 0.819 BA / 0.833 best-seed numbers.",
+  "_caveat": "SIGReg (c1/c2) numbers predate the slice-seed fix (BCS slices were seeded per-step, shared across seeds) -> SIGReg error bars understate true variance. Not re-run.",
+  "_metric_note": "Headline BA is the 3-seed MEAN. AUROC: report the 3-seed MEAN (~0.89), not the best-seed (0.90).",
+  "split": {"dataset": "TUAB", "n_train_recordings": 2717, "n_eval_recordings": 276, "seeds": [1, 1000, 10000]},
+  "cells": {
+    "c0_vicreg_ambient": {
+      "seeds": {"s1": {"balanced_acc": 0.8063, "auroc": 0.897, "acc": 0.8116},
+                "s1000": {"balanced_acc": 0.8063, "auroc": 0.8892, "acc": 0.8116},
+                "s10000": {"balanced_acc": 0.8289, "auroc": 0.8899, "acc": 0.8333}},
+      "mean_balanced_acc": 0.8138, "mean_auroc": 0.8920
+    },
+    "c1_sigreg_ambient": {
+      "seeds": {"s1": {"balanced_acc": 0.8329, "auroc": 0.9006, "acc": 0.837},
+                "s1000": {"balanced_acc": 0.8137, "auroc": 0.8825, "acc": 0.8188},
+                "s10000": {"balanced_acc": 0.8089, "auroc": 0.89, "acc": 0.8116}},
+      "mean_balanced_acc": 0.8185, "best_seed_balanced_acc": 0.8329, "mean_auroc": 0.8910
+    },
+    "c2_sigreg_tangent": {
+      "seeds": {"s1": {"balanced_acc": 0.8176, "auroc": 0.8874, "acc": 0.8225},
+                "s1000": {"balanced_acc": 0.8183, "auroc": 0.8916, "acc": 0.8225},
+                "s10000": {"balanced_acc": 0.823, "auroc": 0.8869, "acc": 0.8297}},
+      "mean_balanced_acc": 0.8196, "mean_auroc": 0.8886
+    },
+    "c3_peira_ambient": {
+      "seeds": {"s1": {"balanced_acc": 0.8262, "auroc": 0.8983, "acc": 0.8297},
+                "s1000": {"balanced_acc": 0.8295, "auroc": 0.8982, "acc": 0.8333},
+                "s10000": {"balanced_acc": 0.789, "auroc": 0.8807, "acc": 0.7935}},
+      "mean_balanced_acc": 0.8149, "mean_auroc": 0.8924
+    },
+    "c4_peira_tangent": {
+      "seeds": {"s1": {"balanced_acc": 0.811, "auroc": 0.8757, "acc": 0.8152},
+                "s1000": {"balanced_acc": 0.801, "auroc": 0.8962, "acc": 0.8043},
+                "s10000": {"balanced_acc": 0.8083, "auroc": 0.9048, "acc": 0.8116}},
+      "mean_balanced_acc": 0.8068, "mean_auroc": 0.8922
+    }
+  }
+}
