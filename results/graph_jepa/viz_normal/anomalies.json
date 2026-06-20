@@ -1,0 +1,148 @@
+{
+  "file_score": 0.13305238522589208,
+  "window_scores": [
+    0.09123913919819253,
+    0.08779261859932116,
+    0.06769326978496143,
+    0.11814136409333774,
+    0.09026204555162362,
+    0.10431593869413648,
+    0.09557200691529683,
+    0.09052262561661857,
+    0.08969510591455869,
+    0.13305238522589208,
+    0.13122157427881445,
+    0.0993891889495509
+  ],
+  "window_starts_sec": [
+    0.0,
+    7.0,
+    14.0,
+    21.0,
+    28.0,
+    35.0,
+    42.0,
+    49.0,
+    56.0,
+    63.0,
+    70.0,
+    77.0
+  ],
+  "top_anomalies": [
+    {
+      "channel": "T5-O1",
+      "channel_index": 3,
+      "time_sec": 0.0,
+      "score": 0.11182776838541031
+    },
+    {
+      "channel": "T6-O2",
+      "channel_index": 7,
+      "time_sec": 0.0,
+      "score": 0.10025936365127563
+    },
+    {
+      "channel": "T5-O1",
+      "channel_index": 3,
+      "time_sec": 0.9,
+      "score": 0.09170561283826828
+    },
+    {
+      "channel": "T5-O1",
+      "channel_index": 3,
+      "time_sec": 0.8,
+      "score": 0.09116268157958984
+    },
+    {
+      "channel": "Fp1-F7",
+      "channel_index": 0,
+      "time_sec": 0.0,
+      "score": 0.08562228828668594
+    },
+    {
+      "channel": "T5-O1",
+      "channel_index": 3,
+      "time_sec": 0.1,
+      "score": 0.08086556941270828
+    },
+    {
+      "channel": "T6-O2",
+      "channel_index": 7,
+      "time_sec": 0.7,
+      "score": 0.07983028143644333
+    },
+    {
+      "channel": "T5-O1",
+      "channel_index": 3,
+      "time_sec": 0.7,
+      "score": 0.07895287126302719
+    },
+    {
+      "channel": "Fp1-F7",
+      "channel_index": 0,
+      "time_sec": 2.4,
+      "score": 0.07683401554822922
+    },
+    {
+      "channel": "Fp1-F7",
+      "channel_index": 0,
+      "time_sec": 5.1,
+      "score": 0.07625824958086014
+    },
+    {
+      "channel": "Fp1-F7",
+      "channel_index": 0,
+      "time_sec": 1.5,
+      "score": 0.07534762471914291
+    },
+    {
+      "channel": "T6-O2",
+      "channel_index": 7,
+      "time_sec": 0.9,
+      "score": 0.07484450191259384
+    },
+    {
+      "channel": "T5-O1",
+      "channel_index": 3,
+      "time_sec": 1.0,
+      "score": 0.07409939914941788
+    },
+    {
+      "channel": "Fp2-F8",
+      "channel_index": 4,
+      "time_sec": 0.0,
+      "score": 0.0737975537776947
+    },
+    {
+      "channel": "Fp1-F7",
+      "channel_index": 0,
+      "time_sec": 5.8,
+      "score": 0.07347030192613602
+    }
+  ],
+  "channels": [
+    "Fp1-F7",
+    "F7-T3",
+    "T3-T5",
+    "T5-O1",
+    "Fp2-F8",
+    "F8-T4",
+    "T4-T6",
+    "T6-O2",
+    "A1-T3",
+    "T3-C3",
+    "C3-Cz",
+    "Cz-C4",
+    "C4-T4",
+    "T4-A2",
+    "Fp1-F3",
+    "F3-C3",
+    "C3-P3",
+    "P3-O1",
+    "Fp2-F4",
+    "F4-C4",
+    "C4-P4",
+    "P4-O2"
+  ],
+  "input": "/lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED/eval/normal/01_tcp_ar/aaaaajtg_s001_t000.edf"
+}
