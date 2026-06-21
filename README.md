@@ -1,101 +1,109 @@
-# hello-worlds — Geometry-Aware JEPA for EEG
+# Hello Worlds - Geometry-Aware JEPA for EEG
 
-**Hack the World(s) · EEG track · team Hello Worlds.** A controlled **frozen-transfer**
-study on **TUAB** (TUH Abnormal EEG): pretrain a two-view self-supervised encoder on
-unlabeled EEG, **freeze it**, and linear-probe *normal vs abnormal*.
+**Hack the World(s) 2026 | EEG track | Team Hello Worlds**
 
-> **Headline.** Domain-matched JEPA pretraining yields a frozen encoder whose linear
-> probe (**0.819 balanced accuracy / ~0.89 AUROC, 3 seeds**) is competitive with the
-> TUAB fine-tuning literature and above every foundation model evaluated *frozen*
-> (EEG-FM-Bench: 0.55–0.78). In a controlled 2×2 ablation, **neither a distribution-free
-> regulariser (PEIRA) nor a geometry-aware SPD-tangent variant beats the plain ambient
-> SIGReg baseline** — yet the frozen SPD latent is visibly *organised*, and **de Surrel's
-> AIRM Riemannian embedding sharpens it over the Euclidean view**, most clearly for SIGReg.
+This repository is the final artifact of a 24-hour controlled study of
+self-supervised EEG representations. We pretrain on unlabeled TUAB recordings,
+freeze the encoder, and fit a linear probe for normal-versus-abnormal EEG on the
+patient-disjoint TUAB evaluation split.
 
-We say "JEPA" loosely (after LeJEPA): the model is a **symmetric Siamese**
-augmentation-invariance + anti-collapse objective — no predictor, no EMA/target encoder,
-no latent prediction. Built on a trimmed vendor of
-[`eb_jepa`](https://github.com/facebookresearch/eb_jepa) (its EEG dataloader +
-VICReg/SIGReg losses are reused intact under `eb_jepa/`).
+## Result in one paragraph
 
-## The question
-Where should the anti-collapse regulariser act, and which mechanism wins? The EEG channel
-covariance lives on a curved **SPD manifold**, so we test acting in its **tangent** vs
-plain **ambient** Euclidean space, with **SIGReg** (isotropic-Gaussian target) vs **PEIRA**
-(distribution-free — the principled fit for a non-Gaussian tangent).
+The in-domain SIGReg baseline reaches **0.819 balanced accuracy** and roughly
+**0.89 AUROC** across three seeds. In the controlled ambient-versus-SPD-tangent
+and SIGReg-versus-PEIRA comparison, every cell is near 0.82: neither the
+distribution-free regularizer nor tangent-space regularization gives a reliable
+frozen-probe gain. The SPD-tangent latent is still a useful geometric diagnostic:
+AIRM-aware visualization exposes structure that a Euclidean view can obscure. It
+is qualitative evidence, not a performance claim.
 
-|            | ambient (Euclidean)        | tangent (SPD)        |
-|------------|----------------------------|----------------------|
-| **VICReg** | `C0` reference             | —                    |
-| **SIGReg** | `C1` Laya-like baseline    | `C2` geometry-aware  |
-| **PEIRA**  | `C3`                       | `C4` ex-hypothesis   |
+This is a symmetric two-view invariance objective with an explicit anti-collapse
+regularizer. It is JEPA-inspired, but it is not an EMA-teacher I-JEPA/V-JEPA
+implementation and it does not train a temporal predictor.
 
-**A clean 3-seed null:** every cell lands ~0.82, inter-cell gaps ≤ 0.013 (below a plausible
-eval bootstrap CI). Geometry/PEIRA help neither accuracy, calibration, nor robustness — the
-payoff is the **latent geometry**, not the probe number.
+## Experimental contract
 
-## Results — frozen linear probe, TUAB 2717/276 patient-disjoint split
-| Method | BA | AUROC |
-|---|--:|--:|
-| **Ours — SIGReg in-domain** (TUAB→TUAB, 3 seeds) | **0.819** | ~0.89 |
-| Ours — SIGReg general-pretrain (TUSZ→TUAB, 1 seed) | 0.814 | 0.889 |
-| random-init encoder (floor) | 0.790 | — |
-| baseline — supervised-from-scratch (end-to-end / frozen) | 0.817 / 0.797 | 0.906 / 0.908 |
-| baseline — Riemannian covariance + logistic | 0.761 | — |
-| baseline — channel mean+std → linear probe | 0.553 | — |
-| frozen foundation models (CBraMod → BIOT) | 0.55 – 0.78 | — |
+| Regularizer | Ambient Euclidean | SPD tangent |
+|---|---:|---:|
+| VICReg | C0 reference | - |
+| SIGReg | C1 baseline | C2 geometry-aware |
+| PEIRA | C3 | C4 pre-registered hypothesis |
 
-Ours/baseline rows are measured locally; FM rows are quoted from **EEG-FM-Bench** (Xiong et
-al., arXiv 2508.17742). Figure: `results/benchmark/frozen_headtohead.png`.
+- **Data:** TUAB, 2,717 train and 276 evaluation recordings; the split is
+  patient-disjoint.
+- **Protocol:** SSL uses no labels during pretraining; the frozen linear probe is
+  trained only after representation learning.
+- **Headline metric:** three-seed balanced accuracy. The best single seed, 0.833,
+  is not the reported result.
+- **Controls:** random-init encoder floor (~0.79), supervised baseline, channel
+  mean/std baseline, and a classical Riemannian covariance baseline.
 
-## Repo layout
+## Secondary evidence and caveats
+
+- **TUSZ to TUAB:** a general-TUH pretraining run reaches 0.814 balanced accuracy
+  and 0.889 AUROC when frozen and probed on TUAB. This is one seed and same-site
+  evidence, not a broad cross-site claim.
+- **TUEV:** the repository retains a conventional SIGReg train/probe pipeline and
+  Riemannian visualizations as a secondary cross-task track. Its relationship to
+  the TUAB pretraining split remains caveated; it is not a headline result.
+- **Visualization:** labels are applied after embedding for interpretation only.
+  t-SNE/UMAP-style plots never substitute for held-out metrics, leakage checks, or
+  seed variation.
+
+## Repository layout
+
+```text
+eb_jepa/                 minimal vendor: EEG dataset and anti-collapse losses
+examples/eeg/            TUAB/TUSZ/TUEV training, probes, geometry, and figures
+cluster/                 retained Dalia/SLURM launch recipes
+results/                 curated measured tables and figures
+presentation/            final deck source and compiled PDF
+docs/                    positioning, geometry notes, and research handoff
+references/              short literature notes
 ```
-eb_jepa/             trimmed vendor: EEG dataloader + VICReg/SIGReg losses
-examples/eeg/        entry points:
-  main.py              pretrain a JEPA cell        eval.py                frozen probe (+ --floor)
-  baseline_riemann.py  Riemannian cov baseline     baseline_chanstats.py  channel mean+std baseline
-  benchmark.py         render the benchmark table  frozen_headtohead.py   the FM comparison figure
-  cfgs/                train / ablation / supervised configs
-cluster/             Dalia (IDRIS) SLURM scripts        → see CLUSTER.md
-presentation/        jury deck (main.tex → main.pdf)    → make
-results/             measured numbers + figures (benchmark, latent, robustness, loss, …)
-references/          literature summaries (LeJEPA, Laya, S-JEPA, EEG-VJEPA)
-docs/                positioning, geometry analysis, benchmark tutorial
-```
 
-## Quickstart
+### Exploratory side quests
+
+**Graph-JEPA** and **Fourier-JEPA** remain in the tree as self-contained,
+lightly explored branches. They are not part of the controlled conclusion above
+and should not be read as competing headline results.
+
+## Reproduce the retained TUAB path
+
 ```bash
-uv venv && uv pip install -e .        # torch matching your CUDA (see pyproject); on the cluster, see CLUSTER.md
+uv venv
+uv pip install -e .
+
 DATA=<TUAB_PREPROCESSED>
 
-# 0) sanity-check the data + 0-parameter yardsticks (no GPU)
-python -m examples.eeg.baseline_riemann   --data-root $DATA
+# CPU baselines
+python -m examples.eeg.baseline_riemann --data-root $DATA
 python -m examples.eeg.baseline_chanstats --data-root $DATA --n-windows 8
 
-# 1) pretrain a cell (set model.ssl.reg_type / reg_space in the config)
+# Two-view SSL pretraining and frozen evaluation
 python -m examples.eeg.main --fname examples/eeg/cfgs/train.yaml
-
-# 2) frozen linear probe on held-out patients, with the random-encoder floor
 python -m examples.eeg.eval --ckpt ./checkpoints/<run>/latest.pth.tar --floor
 
-# 3) render the benchmark table / figures (no training)
+# Rebuild benchmark figures and the deck
 python -m examples.eeg.benchmark
+cd presentation && make
 ```
-Multi-diagnosis (folder-labelled EDFs) and TUEV event-level probes are supported via
-`eval.py --label-scheme folders --classes …` and `tuev_probe.py`. **You own the
-patient-disjoint split** for the `folders` scheme.
 
-## Additional tracks
-- **TCP-Graph-JEPA** (`train_graph_jepa.py`, `evaluate_graph_jepa.py`) — graph JEPA over the
-  22 TCP bipolar derivations; anomaly = failure of spatio-temporal latent predictability.
-  Oriented AUROC **0.791** (the direction inverts: abnormal EEG is *more* predictable).
-- **Fourier-JEPA** (`examples/eeg/cfgs/train_fourier.yaml`) — STFT spectral-stem encoder ablation.
+For TUEV/TUSZ transfer and geometry commands, see the corresponding module
+docstrings and the notes in `docs/`. Dataset files, checkpoints, scheduler logs,
+and generated experiment runs are intentionally not versioned.
 
-## Scope & honesty
-Not a foundation model, not SOTA in 24h. SIGReg-for-EEG (**Laya**) and Riemannian-SSL-for-EEG
-(**EEG-ReMinD**, **MENDR**) already exist — cited as parents. We report **balanced accuracy on
-the full split** with the probe head stated, disclose the **~0.79 random-encoder floor**, and
-never compare against reduced-subset accuracy. Full references in `presentation/main.tex`;
-positioning in `docs/positioning.md`.
+## Honest positioning
 
-**Team Hello Worlds** — [Florent Tariolle](https://tariolle.github.io/) · [Clément Genninasca](https://github.com/Clems06) · [Yoann Frayce](https://github.com/Seveyus) · [Hippolyte du Pac de Marsoulies](https://github.com/hdupac).
+The repository does **not** claim a foundation model, SOTA, or that geometry
+improves TUAB frozen accuracy. It records a reproducible negative result with
+proper controls and preserves the strongest follow-up question: where, if
+anywhere, geometry improves EEG representation quality beyond this narrow
+frozen-probe setting.
+
+See `docs/positioning.md`, `docs/geometry_tangent_analysis.md`, and
+`docs/research_handoff.md` for the detailed claims and next-step constraints.
+
+**Team Hello Worlds:** [Florent Tariolle](https://tariolle.github.io/) ·
+[Clement Genninasca](https://github.com/Clems06) ·
+[Yoann Frayce](https://github.com/Seveyus) · Hippolyte du Pac de Marsoulies.

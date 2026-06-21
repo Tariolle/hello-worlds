@@ -40,9 +40,20 @@ def test_backward_reaches_all_learnable_params():
     enc = _enc()
     x = torch.randn(3, 19, 2000)
     enc.represent(x).pow(2).mean().backward()
-    missing = [n for n, p in enc.named_parameters()
-               if p.requires_grad and (p.grad is None or p.grad.abs().sum() == 0)]
-    assert not missing, f"no gradient reached: {missing}"
+    represent_missing = [
+        n for n, p in enc.named_parameters()
+        if p.requires_grad and not n.startswith("cov_proj")
+        and (p.grad is None or p.grad.abs().sum() == 0)
+    ]
+    assert not represent_missing, f"represent() missed: {represent_missing}"
+
+    enc.zero_grad(set_to_none=True)
+    enc.cov_features(x).pow(2).mean().backward()
+    covariance_missing = [
+        n for n, p in enc.named_parameters()
+        if p.requires_grad and (p.grad is None or p.grad.abs().sum() == 0)
+    ]
+    assert not covariance_missing, f"cov_features() missed: {covariance_missing}"
 
 
 def test_window_moves_with_module_and_is_not_a_parameter():

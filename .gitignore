@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 .venv/
 *.egg-info/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # experiment artifacts
 checkpoints/
@@ -11,6 +15,14 @@ wandb/
 outputs/
 *.pth
 *.pth.tar
+*.pt
+*.ckpt
+*.safetensors
+events.out.tfevents.*
+tensorboard/
+lightning_logs/
+slurm-*.out
+slurm-*.err
 
 # data — never commit EEG recordings
 data/
@@ -20,3 +32,7 @@ data/
 
 # vendored reference papers (keep the SUMMARY.md notes, not the PDFs)
 references/**/*.pdf
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
