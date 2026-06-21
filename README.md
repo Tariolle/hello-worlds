@@ -1,21 +1,31 @@
-# Hello Worlds - Geometry-Aware JEPA for EEG
+# Hello Worlds
 
-**Hack the World(s) 2026 | EEG track | Team Hello Worlds**
+### Geometry-aware EEG representation learning
 
-This repository is the final artifact of a 24-hour controlled study of
-self-supervised EEG representations. We pretrain on unlabeled TUAB recordings,
-freeze the encoder, and fit a linear probe for normal-versus-abnormal EEG on the
-patient-disjoint TUAB evaluation split.
+**Team finalist - Hack the World(s), June 2026**
 
-## Result in one paragraph
+[Final deck](presentation/main.pdf) | [Research handoff](docs/research_handoff.md)
 
-The in-domain SIGReg baseline reaches **0.819 balanced accuracy** and roughly
-**0.89 AUROC** across three seeds. In the controlled ambient-versus-SPD-tangent
-and SIGReg-versus-PEIRA comparison, every cell is near 0.82: neither the
-distribution-free regularizer nor tangent-space regularization gives a reliable
-frozen-probe gain. The SPD-tangent latent is still a useful geometric diagnostic:
-AIRM-aware visualization exposes structure that a Euclidean view can obscure. It
-is qualitative evidence, not a performance claim.
+**Team:** [Florent Tariolle](https://tariolle.github.io/) |
+[Clement Genninasca](https://github.com/Clems06) |
+[Yoann Frayce](https://github.com/Seveyus) |
+[Hippolyte du Pac](https://github.com/hdupac)
+
+This repository is the final artifact of a 24h geometry-aware EEG
+representation-learning project: a strong SIGReg baseline, and evidence that
+SPD-tangent geometry makes the learned latent structure more visible. We
+pretrain on unlabeled TUAB recordings, freeze the encoder, and fit a linear
+probe for normal-versus-abnormal EEG on a patient-disjoint evaluation split.
+
+## What we found
+
+- **Performance:** the in-domain SIGReg baseline reaches **0.819 balanced
+  accuracy** and roughly **0.89 AUROC** across three seeds.
+- **Geometry:** in the controlled ambient-versus-SPD-tangent and
+  SIGReg-versus-PEIRA comparison, every cell is near 0.82. The tangent-space
+  variant does not give a reliable frozen-probe gain, but AIRM-aware
+  visualization exposes latent structure that a Euclidean view can obscure.
+  This is qualitative geometric evidence, not a performance claim.
 
 This is a symmetric two-view invariance objective with an explicit anti-collapse
 regularizer. It is JEPA-inspired, but it is not an EMA-teacher I-JEPA/V-JEPA
@@ -68,6 +78,12 @@ references/              short literature notes
 lightly explored branches. They are not part of the controlled conclusion above
 and should not be read as competing headline results.
 
+## Project status
+
+This is a frozen hackathon artifact. [Manifold-JEPA](https://github.com/Tariolle/manifold-jepa)
+is the separate repository for the follow-up anomaly-detection research; this
+repository remains the provenance-preserving record of the 24h project.
+
 ## Reproduce the retained TUAB path
 
 ```bash
@@ -103,7 +119,3 @@ frozen-probe setting.
 
 See `docs/positioning.md`, `docs/geometry_tangent_analysis.md`, and
 `docs/research_handoff.md` for the detailed claims and next-step constraints.
-
-**Team Hello Worlds:** [Florent Tariolle](https://tariolle.github.io/) ·
-[Clement Genninasca](https://github.com/Clems06) ·
-[Yoann Frayce](https://github.com/Seveyus) · [Hippolyte du Pac](https://github.com/hdupac) 
