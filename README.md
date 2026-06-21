@@ -106,4 +106,4 @@ See `docs/positioning.md`, `docs/geometry_tangent_analysis.md`, and
 
 **Team Hello Worlds:** [Florent Tariolle](https://tariolle.github.io/) ·
 [Clement Genninasca](https://github.com/Clems06) ·
-[Yoann Frayce](https://github.com/Seveyus) · Hippolyte du Pac de Marsoulies.
+[Yoann Frayce](https://github.com/Seveyus) · [Hippolyte du Pac](https://github.com/hdupac) 
