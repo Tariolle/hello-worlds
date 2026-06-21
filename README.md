@@ -4,6 +4,8 @@
 
 **Team finalist - Hack the World(s), June 2026**
 
+24-hour hackathon on JEPAs and world models.
+
 [Code](https://github.com/Tariolle/hello-worlds) |
 [Final deck](presentation/main.pdf) | [Research handoff](docs/research_handoff.md)
 
