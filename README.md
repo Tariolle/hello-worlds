@@ -4,6 +4,7 @@
 
 **Team finalist - Hack the World(s), June 2026**
 
+[Code](https://github.com/Tariolle/hello-worlds) |
 [Final deck](presentation/main.pdf) | [Research handoff](docs/research_handoff.md)
 
 **Team:** [Florent Tariolle](https://tariolle.github.io/) |
@@ -30,6 +31,37 @@ probe for normal-versus-abnormal EEG on a patient-disjoint evaluation split.
 This is a symmetric two-view invariance objective with an explicit anti-collapse
 regularizer. It is JEPA-inspired, but it is not an EMA-teacher I-JEPA/V-JEPA
 implementation and it does not train a temporal predictor.
+
+## Reproduce the retained TUAB path
+
+```bash
+uv venv
+uv pip install -e .
+
+DATA=<TUAB_PREPROCESSED>
+
+# CPU baselines
+python -m examples.eeg.baseline_riemann --data-root $DATA
+python -m examples.eeg.baseline_chanstats --data-root $DATA --n-windows 8
+
+# Two-view SSL pretraining and frozen evaluation
+python -m examples.eeg.main --fname examples/eeg/cfgs/train.yaml
+python -m examples.eeg.eval --ckpt ./checkpoints/<run>/latest.pth.tar --floor
+
+# Rebuild benchmark figures and the deck
+python -m examples.eeg.benchmark
+cd presentation && make
+```
+
+For TUEV/TUSZ transfer and geometry commands, see the corresponding module
+docstrings and the notes in `docs/`. Dataset files, checkpoints, scheduler logs,
+and generated experiment runs are intentionally not versioned.
+
+## Project status
+
+This is a frozen hackathon artifact. [Manifold-JEPA](https://github.com/Tariolle/manifold-jepa)
+is the separate repository for the follow-up anomaly-detection research; this
+repository remains the provenance-preserving record of the 24h project.
 
 ## Experimental contract
 
@@ -77,37 +109,6 @@ references/              short literature notes
 **Graph-JEPA** and **Fourier-JEPA** remain in the tree as self-contained,
 lightly explored branches. They are not part of the controlled conclusion above
 and should not be read as competing headline results.
-
-## Project status
-
-This is a frozen hackathon artifact. [Manifold-JEPA](https://github.com/Tariolle/manifold-jepa)
-is the separate repository for the follow-up anomaly-detection research; this
-repository remains the provenance-preserving record of the 24h project.
-
-## Reproduce the retained TUAB path
-
-```bash
-uv venv
-uv pip install -e .
-
-DATA=<TUAB_PREPROCESSED>
-
-# CPU baselines
-python -m examples.eeg.baseline_riemann --data-root $DATA
-python -m examples.eeg.baseline_chanstats --data-root $DATA --n-windows 8
-
-# Two-view SSL pretraining and frozen evaluation
-python -m examples.eeg.main --fname examples/eeg/cfgs/train.yaml
-python -m examples.eeg.eval --ckpt ./checkpoints/<run>/latest.pth.tar --floor
-
-# Rebuild benchmark figures and the deck
-python -m examples.eeg.benchmark
-cd presentation && make
-```
-
-For TUEV/TUSZ transfer and geometry commands, see the corresponding module
-docstrings and the notes in `docs/`. Dataset files, checkpoints, scheduler logs,
-and generated experiment runs are intentionally not versioned.
 
 ## Honest positioning
 
