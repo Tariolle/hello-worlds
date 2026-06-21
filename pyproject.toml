@@ -34,7 +34,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["eb_jepa*", "examples*", "src*"]
+include = ["archive*", "eb_jepa*", "examples*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
