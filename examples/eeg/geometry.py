@@ -68,6 +68,34 @@ def tangent_features(feat, eps_cov=1e-4, eps_log=1e-5):
     return upper_tri_vec(spd_logm(temporal_covariance(feat, eps_cov), eps_log))
 
 
+def spd_expm(S, eps=1e-5):
+    """Differentiable SPD matrix exponential via eigendecomposition.
+
+    Inverse of spd_logm: maps a symmetric matrix back to SPD.
+    """
+    S = 0.5 * (S + S.transpose(-1, -2))
+    evals, evecs = torch.linalg.eigh(S)
+    return evecs @ torch.diag_embed(evals.exp()) @ evecs.transpose(-1, -2)
+
+
+def riemannian_sq_dist(A, B, eps=1e-5):
+    """Affine-invariant squared geodesic distance between batched SPD matrices.
+
+    d²(A,B) = ||log(A^{-1/2} B A^{-1/2})||_F² = sum_i log²(λ_i(A^{-1/2} B A^{-1/2}))
+
+    Computed via eigendecomposition of A to get A^{-1/2}, then eigvalsh of M.
+    Returns shape [B].
+    """
+    d = A.shape[-1]
+    eps_I = eps * torch.eye(d, device=A.device, dtype=A.dtype)
+    evals_A, evecs_A = torch.linalg.eigh(A + eps_I)
+    A_isqrt = evecs_A @ torch.diag_embed(evals_A.clamp(min=eps).rsqrt()) @ evecs_A.mT
+    M = A_isqrt @ (B + eps_I) @ A_isqrt
+    M = 0.5 * (M + M.mT)
+    evals_M = torch.linalg.eigvalsh(M).clamp(min=eps)
+    return (torch.log(evals_M) ** 2).sum(-1)
+
+
 @torch.no_grad()
 def collapse_metrics(Z):
     """Anti-collapse diagnostics on a batch of embeddings Z: [N, D].

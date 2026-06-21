@@ -1,0 +1,58 @@
+# EEG I-JEPA v2 — attention pooler + masquage frequentiel
+#
+# Deux ameliorations vs v1 (train_ijepa.yaml) :
+#   1. pool_type: attn   — le modele apprend a ponderer les instants temporels
+#                          (vs avg pool qui jette toute structure temporelle)
+#   2. freq_mask_p: 0.5  — masquage de bandes de frequence (delta/theta/alpha/beta/gamma)
+#                          comme tache predictive supplementaire dans I-JEPA
+#
+# Justification EEG :
+#   - Les bandes de frequence sont les "tokens semantiques" de l'EEG
+#   - Masquer une bande entiere force des representations frequence-specifiques
+#   - L'attention pooler peut se concentrer sur les bursts (crises, artefacts)
+#   - Aucun papier publie ne combine I-JEPA + freq masking pour l'EEG -> NOVEL
+
+meta:
+  seed: 1
+  ckpt_dir: ./checkpoints/eeg_ijepa_v2
+
+data:
+  data_root: /lustre/work/pdl17890/udl806719/datasets/Neuro/TUAB-TUEV/TUAB_PREPROCESSED
+  split: train
+  n_channels: 19
+  sfreq: 200
+  window_sec: 10.0
+  epoch_size: 20000
+  n_windows: 16
+  batch_size: 256
+  num_workers: 16
+  aug_noise_std: 0.05
+  aug_scale_jitter: 0.1
+  aug_chan_drop_p: 0.1
+  aug_time_mask_frac: 0.05    # legers masquages temporels classiques
+
+model:
+  n_channels: 19
+  encoder:
+    widths: [64, 128, 128, 256]
+    d_model: 256
+    d_cov: 32
+    kernel: 7
+    stride: 2
+    pool_type: attn            # attention pooler au lieu de avg pool
+  ssl:
+    mask_ratio: 0.4
+    freq_mask_p: 0.5           # prob de masquer une bande de frequence sur context view
+    freq_mask_bands: 1         # nombre de bandes masquees
+    pred_hidden: 512
+    bcs_weight: 0.5
+    num_slices: 256
+    lmbd: 10.0
+    proj: "512-512-256"
+
+optim:
+  lr: 0.001
+  weight_decay: 0.000001
+  epochs: 50
+  warmup_epochs: 5
+  ema_momentum: 0.996
