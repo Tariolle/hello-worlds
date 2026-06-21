@@ -30,9 +30,35 @@ probe for normal-versus-abnormal EEG on a patient-disjoint evaluation split.
   visualization exposes latent structure that a Euclidean view can obscure.
   This is qualitative geometric evidence, not a performance claim.
 
+![Three-seed TUAB 2x2: anti-collapse regularizer by representation space](results/figures/tuab_2x2_sigreg_peira.png)
+
+The visualization below is computed from frozen SPD latent covariances. Labels
+are applied only afterwards for interpretation: the AIRM-aware view makes the
+learned organization more apparent, but it is not a substitute for held-out
+metrics.
+
+![Frozen TUAB latents: Euclidean tangent t-SNE compared with AIRM Riemannian t-SNE](results/riemann/riemann_latent.png)
+
 This is a symmetric two-view invariance objective with an explicit anti-collapse
 regularizer. It is JEPA-inspired, but it is not an EMA-teacher I-JEPA/V-JEPA
 implementation and it does not train a temporal predictor.
+
+## Retained core implementation
+
+The final artifact is the two-view TUAB/TUSZ/TUEV pipeline below - **not** the
+archived Graph-JEPA or Fourier-JEPA explorations.
+
+- [Training pipeline](examples/eeg/main.py): two-view SSL pretraining and the
+  ambient-versus-SPD-tangent regularization switch.
+- [Frozen evaluation](examples/eeg/eval.py) and
+  [TUAB baselines/benchmark](examples/eeg/benchmark.py).
+- [EEG encoder](examples/eeg/encoder.py) and
+  [SIGReg/BCS loss](eb_jepa/losses.py).
+- [PEIRA](examples/eeg/peira.py) and
+  [SPD-tangent geometry](examples/eeg/geometry.py).
+- [AIRM/tangent visualization](examples/eeg/riemann_latent.py), with matching
+  [TUSZ](examples/eeg/riemann_latent_tusz.py) and
+  [TUEV](examples/eeg/riemann_latent_tuev.py) paths.
 
 ## Reproduce the retained TUAB path
 
@@ -98,19 +124,20 @@ repository remains the provenance-preserving record of the 24h project.
 
 ```text
 eb_jepa/                 minimal vendor: EEG dataset and anti-collapse losses
-examples/eeg/            TUAB/TUSZ/TUEV training, probes, geometry, and figures
+examples/eeg/            retained TUAB/TUSZ/TUEV training, probes, geometry, and figures
 cluster/                 retained Dalia/SLURM launch recipes
-results/                 curated measured tables and figures
+results/                 curated core measured tables and figures
 presentation/            final deck source and compiled PDF
 docs/                    positioning, geometry notes, and research handoff
 references/              short literature notes
+archive/                 explicitly non-headline Graph-JEPA and Fourier-JEPA explorations
 ```
 
-### Exploratory side quests
+### Archived explorations
 
-**Graph-JEPA** and **Fourier-JEPA** remain in the tree as self-contained,
-lightly explored branches. They are not part of the controlled conclusion above
-and should not be read as competing headline results.
+[Graph-JEPA](archive/graph_jepa/) and [Fourier-JEPA](archive/fourier_jepa/) are
+preserved as self-contained explorations. They are not part of the controlled
+conclusion above and should not be read as competing headline results.
 
 ## Honest positioning
 
