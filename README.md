@@ -30,14 +30,14 @@ probe for normal-versus-abnormal EEG on a patient-disjoint evaluation split.
   visualization exposes latent structure that a Euclidean view can obscure.
   This is qualitative geometric evidence, not a performance claim.
 
-![Three-seed TUAB 2x2: anti-collapse regularizer by representation space](results/figures/tuab_2x2_sigreg_peira.png)
+![Frozen head-to-head on TUAB against EEG-FM-Bench frozen baselines](results/benchmark/frozen_headtohead.png)
 
-The visualization below is computed from frozen SPD latent covariances. Labels
-are applied only afterwards for interpretation: the AIRM-aware view makes the
-learned organization more apparent, but it is not a substitute for held-out
-metrics.
+The visualization below is computed from frozen SPD latent covariances on TUSZ
+seizure-type events. Labels are applied only afterwards for interpretation: the
+AIRM-aware view makes the learned organization more apparent, but it is not a
+substitute for held-out metrics.
 
-![Frozen TUAB latents: Euclidean tangent t-SNE compared with AIRM Riemannian t-SNE](results/riemann/riemann_latent.png)
+![Frozen TUSZ latents: Euclidean tangent t-SNE compared with AIRM Riemannian t-SNE](results/riemann/riemann_latent_tusz.png)
 
 This is a symmetric two-view invariance objective with an explicit anti-collapse
 regularizer. It is JEPA-inspired, but it is not an EMA-teacher I-JEPA/V-JEPA
