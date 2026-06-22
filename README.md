@@ -2,7 +2,7 @@
 
 ### Geometry-aware EEG representation learning
 
-**Team finalist - Hack the World(s), June 2026**
+**Finalist - Hack the World(s), June 2026**
 
 24-hour hackathon on JEPAs and world models, sponsored by Yann LeCun.
 
