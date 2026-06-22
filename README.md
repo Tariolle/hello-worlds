@@ -35,7 +35,9 @@ probe for normal-versus-abnormal EEG on a patient-disjoint evaluation split.
 The visualization below is computed from frozen SPD latent covariances on TUSZ
 seizure-type events. Labels are applied only afterwards for interpretation: the
 AIRM-aware view makes the learned organization more apparent, but it is not a
-substitute for held-out metrics.
+substitute for held-out metrics. The AIRM Riemannian t-SNE visualization follows
+Thibault de Surrel's [r_tSNE_in_C](https://github.com/thibaultdesurrel/r_tSNE_in_C)
+work.
 
 ![Frozen TUSZ latents: Euclidean tangent t-SNE compared with AIRM Riemannian t-SNE](results/riemann/riemann_latent_tusz.png)
 
