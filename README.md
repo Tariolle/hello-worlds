@@ -144,10 +144,10 @@ conclusion above and should not be read as competing headline results.
 ## Honest positioning
 
 The repository does **not** claim a foundation model, SOTA, or that geometry
-improves TUAB frozen accuracy. It records a reproducible negative result with
-proper controls and preserves the strongest follow-up question: where, if
-anywhere, geometry improves EEG representation quality beyond this narrow
-frozen-probe setting.
+improves TUAB frozen accuracy. It records a strong frozen SIGReg baseline, a
+controlled null result for the geometry-as-frozen-accuracy hypothesis, and the
+follow-up question: where, if anywhere, geometry improves EEG representation
+quality beyond this narrow frozen-probe setting.
 
 See `docs/positioning.md`, `docs/geometry_tangent_analysis.md`, and
 `docs/research_handoff.md` for the detailed claims and next-step constraints.
