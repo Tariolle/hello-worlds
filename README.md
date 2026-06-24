@@ -151,3 +151,9 @@ quality beyond this narrow frozen-probe setting.
 
 See `docs/positioning.md`, `docs/geometry_tangent_analysis.md`, and
 `docs/research_handoff.md` for the detailed claims and next-step constraints.
+
+## License
+
+This repository is licensed under the Apache License, Version 2.0. A trimmed
+vendored subset of `facebookresearch/eb_jepa` is retained under `eb_jepa/`; see
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for provenance.
